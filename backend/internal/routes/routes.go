@@ -1,0 +1,55 @@
+package routes
+
+import (
+	"github.com/gin-gonic/gin"
+	"github.com/conquista-ai/conquista-ai/internal/handlers"
+	"github.com/conquista-ai/conquista-ai/internal/middleware"
+)
+
+func SetupRoutes(
+	router *gin.Engine,
+	categoryHandler *handlers.CategoryHandler,
+	okrHandler *handlers.OKRHandler,
+	keyResultHandler *handlers.KeyResultHandler,
+	roadmapHandler *handlers.RoadmapHandler,
+) {
+	router.Use(middleware.CORSMiddleware())
+
+	// Health check
+	router.GET("/health", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"status":  "ok",
+			"service": "conquista-ai",
+		})
+	})
+
+	// API v1
+	api := router.Group("/api/v1")
+	{
+		// Categories
+		api.GET("/categories", categoryHandler.GetAll)
+		api.POST("/categories", categoryHandler.Create)
+		api.GET("/categories/:id", categoryHandler.GetByID)
+		api.PUT("/categories/:id", categoryHandler.Update)
+		api.DELETE("/categories/:id", categoryHandler.Delete)
+
+		// OKRs
+		api.GET("/okrs", okrHandler.GetAll)
+		api.POST("/okrs", okrHandler.Create)
+		api.GET("/okrs/:id", okrHandler.GetByID)
+		api.PUT("/okrs/:id", okrHandler.Update)
+		api.DELETE("/okrs/:id", okrHandler.Delete)
+		api.POST("/okrs/:id/generate-key-results", okrHandler.GenerateKeyResults)
+
+		// Key Results
+		api.GET("/okrs/:okr_id/key-results", keyResultHandler.GetByOKRID)
+		api.PUT("/key-results/:id", keyResultHandler.Update)
+		api.DELETE("/key-results/:id", keyResultHandler.Delete)
+
+		// Roadmaps
+		api.POST("/key-results/:key_result_id/roadmap", roadmapHandler.GenerateRoadmap)
+		api.GET("/key-results/:key_result_id/roadmap", roadmapHandler.GetByKeyResultID)
+		api.PUT("/roadmap-items/:item_id", roadmapHandler.UpdateItem)
+	}
+}
+
