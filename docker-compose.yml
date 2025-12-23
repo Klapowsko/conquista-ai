@@ -1,22 +1,21 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:15-alpine
     container_name: conquista-postgres
+    env_file:
+      - backend/.env
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-conquista}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-conquista123}
-      POSTGRES_DB: ${POSTGRES_DB:-conquista_ai}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "${POSTGRES_PORT}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./backend/migrations:/docker-entrypoint-initdb.d
     networks:
       - conquista-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-conquista}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -26,20 +25,19 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: conquista-backend
+    env_file:
+      - backend/.env
     ports:
-      - "${BACKEND_PORT:-8080}:8080"
+      - "${BACKEND_PORT}:8080"
     environment:
-      DATABASE_URL: postgres://${POSTGRES_USER:-conquista}:${POSTGRES_PASSWORD:-conquista123}@postgres:5432/${POSTGRES_DB:-conquista_ai}?sslmode=disable
-      SPELLBOOK_API_URL: ${SPELLBOOK_API_URL:-https://spellbook-api.klapowsko.com}
-      PORT: 8080
+      DATABASE_URL: ${DATABASE_URL}
+      SPELLBOOK_API_URL: ${SPELLBOOK_API_URL}
+      PORT: ${PORT}
     depends_on:
       postgres:
         condition: service_healthy
     networks:
       - conquista-network
-    volumes:
-      - ./backend:/app
-      - /app/vendor
     restart: unless-stopped
 
   frontend:
@@ -47,18 +45,16 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     container_name: conquista-frontend
+    env_file:
+      - frontend/.env
     ports:
-      - "${FRONTEND_PORT:-3000}:3000"
+      - "${FRONTEND_PORT}:3000"
     environment:
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8080/api/v1}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
     depends_on:
       - backend
     networks:
       - conquista-network
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-      - /app/.next
     restart: unless-stopped
 
 networks:

@@ -1,4 +1,4 @@
-FROM golang:1.21-alpine AS builder
+FROM golang:1.23-alpine AS builder
 
 WORKDIR /app
 
@@ -13,8 +13,8 @@ RUN go mod download
 COPY . .
 
 # Compilar aplicação
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o bin/server ./cmd/server
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o bin/migrate ./cmd/migrate
+RUN CGO_ENABLED=0 GOOS=linux go build -mod=mod -a -installsuffix cgo -o bin/server ./cmd/server
+RUN CGO_ENABLED=0 GOOS=linux go build -mod=mod -a -installsuffix cgo -o bin/migrate ./cmd/migrate
 
 # Stage final
 FROM alpine:latest
@@ -26,6 +26,8 @@ WORKDIR /app
 # Copiar binários
 COPY --from=builder /app/bin/server .
 COPY --from=builder /app/bin/migrate .
+RUN chmod +x server migrate
+RUN chown -R root:root /app
 
 # Copiar migrations
 COPY --from=builder /app/migrations ./migrations

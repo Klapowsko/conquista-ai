@@ -13,21 +13,24 @@ type Config struct {
 
 func Load() (*Config, error) {
 	cfg := &Config{
-		Port:            getEnv("PORT", "8080"),
-		DatabaseURL:     getEnv("DATABASE_URL", ""),
-		SpellbookAPIURL: getEnv("SPELLBOOK_API_URL", "https://spellbook-api.klapowsko.com"),
+		Port:            getEnv("PORT"),
+		DatabaseURL:     getEnv("DATABASE_URL"),
+		SpellbookAPIURL: getEnv("SPELLBOOK_API_URL"),
 	}
 
+	if cfg.Port == "" {
+		return nil, fmt.Errorf("PORT é obrigatória")
+	}
 	if cfg.DatabaseURL == "" {
 		return nil, fmt.Errorf("DATABASE_URL é obrigatória")
+	}
+	if cfg.SpellbookAPIURL == "" {
+		return nil, fmt.Errorf("SPELLBOOK_API_URL é obrigatória")
 	}
 
 	return cfg, nil
 }
 
-func getEnv(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return defaultValue
+func getEnv(key string) string {
+	return os.Getenv(key)
 }
