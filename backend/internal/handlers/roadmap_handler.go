@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/gin-gonic/gin"
 	"github.com/conquista-ai/conquista-ai/internal/services"
+	"github.com/gin-gonic/gin"
 )
 
 type RoadmapHandler struct {
@@ -139,3 +139,65 @@ func (h *RoadmapHandler) UpdateEducationalResource(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "recurso atualizado com sucesso"})
 }
 
+func (h *RoadmapHandler) GenerateEducationalTrail(c *gin.Context) {
+	var req struct {
+		RoadmapItemID int64  `json:"roadmap_item_id" binding:"required"`
+		ItemTitle     string `json:"item_title" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "roadmap_item_id e item_title são obrigatórios"})
+		return
+	}
+
+	trail, err := h.service.GenerateEducationalTrail(req.RoadmapItemID, req.ItemTitle)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, trail)
+}
+
+func (h *RoadmapHandler) GetEducationalTrailByRoadmapItemID(c *gin.Context) {
+	roadmapItemID, err := strconv.ParseInt(c.Param("roadmap_item_id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID inválido"})
+		return
+	}
+
+	trail, err := h.service.GetEducationalTrailByRoadmapItemID(roadmapItemID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "erro ao buscar trilha educacional"})
+		return
+	}
+
+	if trail == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "trilha educacional não encontrada"})
+		return
+	}
+
+	c.JSON(http.StatusOK, trail)
+}
+
+func (h *RoadmapHandler) UpdateTrailActivity(c *gin.Context) {
+	activityID, err := strconv.ParseInt(c.Param("activity_id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID inválido"})
+		return
+	}
+
+	var req struct {
+		Completed bool `json:"completed"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "dados inválidos"})
+		return
+	}
+
+	if err := h.service.UpdateTrailActivityCompleted(activityID, req.Completed); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "erro ao atualizar atividade"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "atividade atualizada com sucesso"})
+}

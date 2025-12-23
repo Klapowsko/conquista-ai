@@ -18,7 +18,7 @@ func NewClient(baseURL string) *Client {
 	return &Client{
 		baseURL: baseURL,
 		httpClient: &http.Client{
-			Timeout: 30 * time.Second,
+			Timeout: 180 * time.Second, // 3 minutos para trilhas educacionais complexas
 		},
 	}
 }
@@ -203,4 +203,85 @@ func (c *Client) GenerateEducationalRoadmap(topic string) (*EducationalRoadmapRe
 	}
 
 	return &roadmapResp, nil
+}
+
+// ============================================================================
+// Educational Trail API Types
+// ============================================================================
+
+type EducationalTrailRequest struct {
+	Topic string `json:"topic"`
+}
+
+type TrailActivity struct {
+	Type        string   `json:"type"`
+	ResourceID  string   `json:"resource_id"`
+	Title       string   `json:"title"`
+	Description string   `json:"description"`
+	Chapters    []string `json:"chapters,omitempty"`
+	Duration    string   `json:"duration,omitempty"`
+	URL         string   `json:"url,omitempty"`
+	Progress    string   `json:"progress,omitempty"`
+}
+
+type EducationalTrailStep struct {
+	Day         int            `json:"day"`
+	Title       string         `json:"title"`
+	Description string         `json:"description"`
+	Activities  []TrailActivity `json:"activities"`
+}
+
+type TrailResource struct {
+	Title       string   `json:"title"`
+	Description string   `json:"description"`
+	Author      string   `json:"author,omitempty"`
+	Chapters    []string `json:"chapters,omitempty"`
+	Duration    string   `json:"duration,omitempty"`
+	URL         string   `json:"url,omitempty"`
+}
+
+type EducationalTrailResponse struct {
+	Topic       string                       `json:"topic"`
+	TotalDays   int                          `json:"total_days"`
+	Description string                       `json:"description"`
+	Steps       []EducationalTrailStep    `json:"steps"`
+	Resources   map[string]TrailResource    `json:"resources"`
+}
+
+// GenerateEducationalTrail gera uma trilha educacional estruturada em dias/etapas
+func (c *Client) GenerateEducationalTrail(topic string) (*EducationalTrailResponse, error) {
+	reqBody := EducationalTrailRequest{
+		Topic: topic,
+	}
+
+	jsonData, err := json.Marshal(reqBody)
+	if err != nil {
+		return nil, fmt.Errorf("erro ao serializar requisição: %w", err)
+	}
+
+	url := fmt.Sprintf("%s/api/v1/educational-trail", c.baseURL)
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return nil, fmt.Errorf("erro ao criar requisição: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("erro ao fazer requisição: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("erro na API Spellbook: status %d, body: %s", resp.StatusCode, string(body))
+	}
+
+	var trailResp EducationalTrailResponse
+	if err := json.NewDecoder(resp.Body).Decode(&trailResp); err != nil {
+		return nil, fmt.Errorf("erro ao decodificar resposta: %w", err)
+	}
+
+	return &trailResp, nil
 }

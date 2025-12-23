@@ -95,3 +95,50 @@ export interface EducationalRoadmap {
   updated_at: string;
 }
 
+// Educational Trail Types
+export interface TrailActivity {
+  id: number;
+  step_id: number;
+  type: string;
+  resource_id: string;
+  title: string;
+  description: string;
+  chapters?: string[];
+  duration?: string;
+  url?: string;
+  progress?: string;
+  completed: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EducationalTrailStep {
+  id: number;
+  trail_id: number;
+  day: number;
+  title: string;
+  description: string;
+  activities: TrailActivity[];
+  created_at: string;
+}
+
+export interface TrailResource {
+  title: string;
+  description: string;
+  author?: string;
+  chapters?: string[];
+  duration?: string;
+  url?: string;
+}
+
+export interface EducationalTrail {
+  id: number;
+  roadmap_item_id: number;
+  topic: string;
+  total_days: number;
+  description: string;
+  steps: EducationalTrailStep[];
+  resources: Record<string, TrailResource>;
+  created_at: string;
+  updated_at: string;
+}

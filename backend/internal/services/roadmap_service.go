@@ -11,6 +11,7 @@ import (
 type RoadmapService struct {
 	roadmapRepo              *repositories.RoadmapRepository
 	educationalRoadmapRepo   *repositories.EducationalRoadmapRepository
+	educationalTrailRepo     *repositories.EducationalTrailRepository
 	keyResultRepo            *repositories.KeyResultRepository
 	spellbookClient          *spellbook.Client
 }
@@ -18,12 +19,14 @@ type RoadmapService struct {
 func NewRoadmapService(
 	roadmapRepo *repositories.RoadmapRepository,
 	educationalRoadmapRepo *repositories.EducationalRoadmapRepository,
+	educationalTrailRepo *repositories.EducationalTrailRepository,
 	keyResultRepo *repositories.KeyResultRepository,
 	spellbookClient *spellbook.Client,
 ) *RoadmapService {
 	return &RoadmapService{
 		roadmapRepo:            roadmapRepo,
 		educationalRoadmapRepo:  educationalRoadmapRepo,
+		educationalTrailRepo:    educationalTrailRepo,
 		keyResultRepo:          keyResultRepo,
 		spellbookClient:         spellbookClient,
 	}
@@ -200,5 +203,89 @@ func (s *RoadmapService) GetEducationalRoadmapByRoadmapItemID(roadmapItemID int6
 
 func (s *RoadmapService) UpdateEducationalResourceCompleted(resourceID int64, completed bool) error {
 	return s.educationalRoadmapRepo.UpdateResourceCompleted(resourceID, completed)
+}
+
+func (s *RoadmapService) GenerateEducationalTrail(roadmapItemID int64, itemTitle string) (*models.EducationalTrail, error) {
+	// Verificar se já existe trilha para este item
+	existing, err := s.educationalTrailRepo.GetByRoadmapItemID(roadmapItemID)
+	if err != nil {
+		return nil, fmt.Errorf("erro ao verificar trilha existente: %w", err)
+	}
+	if existing != nil {
+		return existing, nil
+	}
+
+	// Gerar trilha educacional via Spellbook
+	trailResp, err := s.spellbookClient.GenerateEducationalTrail(itemTitle)
+	if err != nil {
+		return nil, fmt.Errorf("erro ao gerar trilha educacional: %w", err)
+	}
+
+	// Converter resposta do Spellbook para modelo interno
+	trail := &models.EducationalTrail{
+		RoadmapItemID: roadmapItemID,
+		Topic:         trailResp.Topic,
+		TotalDays:     trailResp.TotalDays,
+		Description:   trailResp.Description,
+		Steps:         make([]models.EducationalTrailStep, 0),
+		Resources:     make(map[string]models.TrailResource),
+	}
+
+	// Converter recursos
+	for resourceID, resourceResp := range trailResp.Resources {
+		resource := models.TrailResource{
+			ResourceID:  resourceID,
+			Title:       resourceResp.Title,
+			Description: resourceResp.Description,
+			Author:      resourceResp.Author,
+			Chapters:    resourceResp.Chapters,
+			Duration:    resourceResp.Duration,
+			URL:         resourceResp.URL,
+		}
+		trail.Resources[resourceID] = resource
+	}
+
+	// Converter steps
+	for _, stepResp := range trailResp.Steps {
+		step := models.EducationalTrailStep{
+			Day:         stepResp.Day,
+			Title:       stepResp.Title,
+			Description: stepResp.Description,
+			Activities:  make([]models.TrailActivity, 0),
+		}
+
+		// Converter atividades
+		for _, activityResp := range stepResp.Activities {
+			activity := models.TrailActivity{
+				Type:        activityResp.Type,
+				ResourceID:  activityResp.ResourceID,
+				Title:       activityResp.Title,
+				Description: activityResp.Description,
+				Chapters:    activityResp.Chapters,
+				Duration:    activityResp.Duration,
+				URL:         activityResp.URL,
+				Progress:    activityResp.Progress,
+				Completed:   false,
+			}
+			step.Activities = append(step.Activities, activity)
+		}
+
+		trail.Steps = append(trail.Steps, step)
+	}
+
+	// Salvar no banco
+	if err := s.educationalTrailRepo.Create(trail); err != nil {
+		return nil, fmt.Errorf("erro ao salvar trilha educacional: %w", err)
+	}
+
+	return trail, nil
+}
+
+func (s *RoadmapService) GetEducationalTrailByRoadmapItemID(roadmapItemID int64) (*models.EducationalTrail, error) {
+	return s.educationalTrailRepo.GetByRoadmapItemID(roadmapItemID)
+}
+
+func (s *RoadmapService) UpdateTrailActivityCompleted(activityID int64, completed bool) error {
+	return s.educationalTrailRepo.UpdateActivityCompleted(activityID, completed)
 }
 

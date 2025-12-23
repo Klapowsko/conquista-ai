@@ -4,6 +4,7 @@ import {
   KeyResult,
   Roadmap,
   EducationalRoadmap,
+  EducationalTrail,
   CreateCategoryRequest,
   CreateOKRRequest,
   UpdateOKRRequest,
@@ -91,6 +92,18 @@ export const roadmapsAPI = {
     fetchAPI<EducationalRoadmap>(`/roadmap-items/${roadmapItemId}/educational-roadmap`),
   updateEducationalResource: (resourceId: number, completed: boolean): Promise<void> =>
     fetchAPI<void>(`/educational-resources/${resourceId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ completed }),
+    }),
+  generateEducationalTrail: (roadmapItemId: number, itemTitle: string): Promise<EducationalTrail> =>
+    fetchAPI<EducationalTrail>('/educational-trail', {
+      method: 'POST',
+      body: JSON.stringify({ roadmap_item_id: roadmapItemId, item_title: itemTitle }),
+    }),
+  getEducationalTrailByRoadmapItemId: (roadmapItemId: number): Promise<EducationalTrail> =>
+    fetchAPI<EducationalTrail>(`/roadmap-items/${roadmapItemId}/educational-trail`),
+  updateTrailActivity: (activityId: number, completed: boolean): Promise<void> =>
+    fetchAPI<void>(`/trail-activities/${activityId}`, {
       method: 'PUT',
       body: JSON.stringify({ completed }),
     }),

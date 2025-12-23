@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/conquista-ai/conquista-ai/internal/config"
@@ -38,13 +40,14 @@ func NewApp() (*App, error) {
 	keyResultRepo := repositories.NewKeyResultRepository(db)
 	roadmapRepo := repositories.NewRoadmapRepository(db)
 	educationalRoadmapRepo := repositories.NewEducationalRoadmapRepository(db)
+	educationalTrailRepo := repositories.NewEducationalTrailRepository(db)
 
 	// Cliente Spellbook
 	spellbookClient := spellbookClient.NewClient(cfg.SpellbookAPIURL)
 
 	// Serviços
 	okrService := services.NewOKRService(okrRepo, keyResultRepo, categoryRepo, spellbookClient)
-	roadmapService := services.NewRoadmapService(roadmapRepo, educationalRoadmapRepo, keyResultRepo, spellbookClient)
+	roadmapService := services.NewRoadmapService(roadmapRepo, educationalRoadmapRepo, educationalTrailRepo, keyResultRepo, spellbookClient)
 
 	// Handlers
 	categoryHandler := handlers.NewCategoryHandler(categoryRepo)
@@ -71,6 +74,15 @@ func (a *App) Run() error {
 	log.Printf("Health check: http://localhost%s/health", addr)
 	log.Printf("API disponível em: http://localhost%s/api/v1", addr)
 
-	return a.Router.Run(addr)
+	// Criar servidor HTTP com timeout aumentado para requisições longas (trilhas educacionais)
+	srv := &http.Server{
+		Addr:         addr,
+		Handler:      a.Router,
+		ReadTimeout:  180 * time.Second, // 3 minutos
+		WriteTimeout: 180 * time.Second, // 3 minutos
+		IdleTimeout:  120 * time.Second,
+	}
+
+	return srv.ListenAndServe()
 }
 

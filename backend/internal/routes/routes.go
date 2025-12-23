@@ -58,5 +58,10 @@ func SetupRoutes(
 		api.POST("/educational-roadmap", roadmapHandler.GenerateEducationalRoadmap)
 		api.GET("/roadmap-items/:roadmap_item_id/educational-roadmap", roadmapHandler.GetEducationalRoadmapByRoadmapItemID)
 		api.PUT("/educational-resources/:resource_id", roadmapHandler.UpdateEducationalResource)
+
+		// Educational Trails
+		api.POST("/educational-trail", roadmapHandler.GenerateEducationalTrail)
+		api.GET("/roadmap-items/:roadmap_item_id/educational-trail", roadmapHandler.GetEducationalTrailByRoadmapItemID)
+		api.PUT("/trail-activities/:activity_id", roadmapHandler.UpdateTrailActivity)
 	}
 }
