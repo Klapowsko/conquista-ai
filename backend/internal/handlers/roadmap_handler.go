@@ -76,3 +76,66 @@ func (h *RoadmapHandler) UpdateItem(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "item atualizado com sucesso"})
 }
 
+func (h *RoadmapHandler) GenerateEducationalRoadmap(c *gin.Context) {
+	var req struct {
+		RoadmapItemID int64  `json:"roadmap_item_id" binding:"required"`
+		ItemTitle     string `json:"item_title" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "roadmap_item_id e item_title são obrigatórios"})
+		return
+	}
+
+	educationalRoadmap, err := h.service.GenerateEducationalRoadmap(req.RoadmapItemID, req.ItemTitle)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, educationalRoadmap)
+}
+
+func (h *RoadmapHandler) GetEducationalRoadmapByRoadmapItemID(c *gin.Context) {
+	roadmapItemID, err := strconv.ParseInt(c.Param("roadmap_item_id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID inválido"})
+		return
+	}
+
+	educationalRoadmap, err := h.service.GetEducationalRoadmapByRoadmapItemID(roadmapItemID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "erro ao buscar roadmap educacional"})
+		return
+	}
+
+	if educationalRoadmap == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "roadmap educacional não encontrado"})
+		return
+	}
+
+	c.JSON(http.StatusOK, educationalRoadmap)
+}
+
+func (h *RoadmapHandler) UpdateEducationalResource(c *gin.Context) {
+	resourceID, err := strconv.ParseInt(c.Param("resource_id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID inválido"})
+		return
+	}
+
+	var req struct {
+		Completed bool `json:"completed"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "dados inválidos"})
+		return
+	}
+
+	if err := h.service.UpdateEducationalResourceCompleted(resourceID, req.Completed); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "erro ao atualizar recurso"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "recurso atualizado com sucesso"})
+}
+

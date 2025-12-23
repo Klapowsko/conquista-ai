@@ -37,13 +37,14 @@ func NewApp() (*App, error) {
 	okrRepo := repositories.NewOKRRepository(db)
 	keyResultRepo := repositories.NewKeyResultRepository(db)
 	roadmapRepo := repositories.NewRoadmapRepository(db)
+	educationalRoadmapRepo := repositories.NewEducationalRoadmapRepository(db)
 
 	// Cliente Spellbook
 	spellbookClient := spellbookClient.NewClient(cfg.SpellbookAPIURL)
 
 	// Serviços
 	okrService := services.NewOKRService(okrRepo, keyResultRepo, categoryRepo, spellbookClient)
-	roadmapService := services.NewRoadmapService(roadmapRepo, keyResultRepo, spellbookClient)
+	roadmapService := services.NewRoadmapService(roadmapRepo, educationalRoadmapRepo, keyResultRepo, spellbookClient)
 
 	// Handlers
 	categoryHandler := handlers.NewCategoryHandler(categoryRepo)

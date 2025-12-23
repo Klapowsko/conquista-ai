@@ -67,3 +67,31 @@ export interface UpdateKeyResultRequest {
   completed: boolean;
 }
 
+export interface EducationalResource {
+  id: number;
+  educational_roadmap_id: number;
+  type: string;
+  title: string;
+  description: string;
+  url?: string;
+  chapters?: string[];
+  duration?: string;
+  author?: string;
+  completed: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EducationalRoadmap {
+  id: number;
+  roadmap_item_id: number;
+  topic: string;
+  books: EducationalResource[];
+  courses: EducationalResource[];
+  videos: EducationalResource[];
+  articles: EducationalResource[];
+  projects: EducationalResource[];
+  created_at: string;
+  updated_at: string;
+}
+

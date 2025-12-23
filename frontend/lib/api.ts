@@ -3,6 +3,7 @@ import {
   OKR,
   KeyResult,
   Roadmap,
+  EducationalRoadmap,
   CreateCategoryRequest,
   CreateOKRRequest,
   UpdateOKRRequest,
@@ -22,7 +23,10 @@ async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> 
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ error: 'Erro desconhecido' }));
-    throw new Error(error.error || `HTTP error! status: ${response.status}`);
+    const errorMessage = error.error || `HTTP error! status: ${response.status}`;
+    const apiError = new Error(errorMessage) as any;
+    apiError.status = response.status;
+    throw apiError;
   }
 
   return response.json();
@@ -75,6 +79,18 @@ export const roadmapsAPI = {
     fetchAPI<Roadmap>(`/key-results/${keyResultId}/roadmap`),
   updateItem: (itemId: number, completed: boolean): Promise<void> =>
     fetchAPI<void>(`/roadmap-items/${itemId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ completed }),
+    }),
+  generateEducational: (roadmapItemId: number, itemTitle: string): Promise<EducationalRoadmap> =>
+    fetchAPI<EducationalRoadmap>('/educational-roadmap', {
+      method: 'POST',
+      body: JSON.stringify({ roadmap_item_id: roadmapItemId, item_title: itemTitle }),
+    }),
+  getEducationalByRoadmapItemId: (roadmapItemId: number): Promise<EducationalRoadmap> =>
+    fetchAPI<EducationalRoadmap>(`/roadmap-items/${roadmapItemId}/educational-roadmap`),
+  updateEducationalResource: (resourceId: number, completed: boolean): Promise<void> =>
+    fetchAPI<void>(`/educational-resources/${resourceId}`, {
       method: 'PUT',
       body: JSON.stringify({ completed }),
     }),

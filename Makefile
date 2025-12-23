@@ -39,4 +39,4 @@ test: ## Executa testes
 	docker compose exec backend go test -v ./...
 
 migrate: ## Executa migrations
-	docker compose exec backend go run cmd/migrate/main.go
+	docker compose exec backend go run -mod=mod cmd/migrate/main.go
