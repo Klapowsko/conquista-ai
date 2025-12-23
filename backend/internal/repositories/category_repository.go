@@ -36,20 +36,24 @@ func (r *CategoryRepository) GetAll() ([]models.Category, error) {
 	
 	rows, err := r.db.Query(query)
 	if err != nil {
-		return nil, err
+		return []models.Category{}, err
 	}
 	defer rows.Close()
 	
-	var categories []models.Category
+	categories := make([]models.Category, 0)
 	for rows.Next() {
 		var c models.Category
 		if err := rows.Scan(&c.ID, &c.Name, &c.CreatedAt, &c.UpdatedAt); err != nil {
-			return nil, err
+			return []models.Category{}, err
 		}
 		categories = append(categories, c)
 	}
 	
-	return categories, rows.Err()
+	if err := rows.Err(); err != nil {
+		return []models.Category{}, err
+	}
+	
+	return categories, nil
 }
 
 func (r *CategoryRepository) GetByID(id int64) (*models.Category, error) {

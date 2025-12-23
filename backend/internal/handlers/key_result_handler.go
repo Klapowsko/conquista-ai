@@ -18,7 +18,7 @@ func NewKeyResultHandler(repo *repositories.KeyResultRepository) *KeyResultHandl
 }
 
 func (h *KeyResultHandler) GetByOKRID(c *gin.Context) {
-	okrID, err := strconv.ParseInt(c.Param("okr_id"), 10, 64)
+	okrID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "ID inválido"})
 		return

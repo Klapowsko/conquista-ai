@@ -8,6 +8,8 @@ build/
 .next/
 out/
 bin/
+tmp/
+build-errors.log
 
 # Environment
 .env

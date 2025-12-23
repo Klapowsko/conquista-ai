@@ -55,12 +55,14 @@ func (s *RoadmapService) GenerateRoadmap(keyResultID int64) (*models.Roadmap, er
 	roadmap := &models.Roadmap{
 		KeyResultID: keyResultID,
 		Topic:       roadmapResp.Topic,
+		Categories:  make([]models.RoadmapCategory, 0),
 	}
 
 	for _, catResp := range roadmapResp.Roadmap {
 		category := models.RoadmapCategory{
 			RoadmapID: 0, // Será preenchido no repositório
 			Category:   catResp.Category,
+			Items:     make([]models.RoadmapItem, 0),
 		}
 
 		for _, itemResp := range catResp.Items {

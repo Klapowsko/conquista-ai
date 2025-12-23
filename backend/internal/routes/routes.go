@@ -1,9 +1,9 @@
 package routes
 
 import (
-	"github.com/gin-gonic/gin"
 	"github.com/conquista-ai/conquista-ai/internal/handlers"
 	"github.com/conquista-ai/conquista-ai/internal/middleware"
+	"github.com/gin-gonic/gin"
 )
 
 func SetupRoutes(
@@ -36,13 +36,16 @@ func SetupRoutes(
 		// OKRs
 		api.GET("/okrs", okrHandler.GetAll)
 		api.POST("/okrs", okrHandler.Create)
-		api.GET("/okrs/:id", okrHandler.GetByID)
-		api.PUT("/okrs/:id", okrHandler.Update)
-		api.DELETE("/okrs/:id", okrHandler.Delete)
-		api.POST("/okrs/:id/generate-key-results", okrHandler.GenerateKeyResults)
 
-		// Key Results
-		api.GET("/okrs/:okr_id/key-results", keyResultHandler.GetByOKRID)
+		// Rotas específicas de OKR (devem vir antes das genéricas)
+		okrs := api.Group("/okrs/:id")
+		{
+			okrs.GET("", okrHandler.GetByID)
+			okrs.PUT("", okrHandler.Update)
+			okrs.DELETE("", okrHandler.Delete)
+			okrs.POST("/generate-key-results", okrHandler.GenerateKeyResults)
+			okrs.GET("/key-results", keyResultHandler.GetByOKRID)
+		}
 		api.PUT("/key-results/:id", keyResultHandler.Update)
 		api.DELETE("/key-results/:id", keyResultHandler.Delete)
 
@@ -52,4 +55,3 @@ func SetupRoutes(
 		api.PUT("/roadmap-items/:item_id", roadmapHandler.UpdateItem)
 	}
 }
-

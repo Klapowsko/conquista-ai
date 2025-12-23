@@ -80,6 +80,7 @@ func (r *RoadmapRepository) GetByKeyResultID(keyResultID int64) (*models.Roadmap
 	}
 	defer catRows.Close()
 
+	roadmap.Categories = make([]models.RoadmapCategory, 0)
 	for catRows.Next() {
 		var cat models.RoadmapCategory
 		if err := catRows.Scan(&cat.ID, &cat.RoadmapID, &cat.Category, &cat.CreatedAt); err != nil {
@@ -94,6 +95,7 @@ func (r *RoadmapRepository) GetByKeyResultID(keyResultID int64) (*models.Roadmap
 			return nil, err
 		}
 
+		cat.Items = make([]models.RoadmapItem, 0)
 		for itemRows.Next() {
 			var item models.RoadmapItem
 			if err := itemRows.Scan(&item.ID, &item.CategoryID, &item.Title,

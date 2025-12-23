@@ -33,6 +33,11 @@ services:
       DATABASE_URL: ${DATABASE_URL}
       SPELLBOOK_API_URL: ${SPELLBOOK_API_URL}
       PORT: ${PORT}
+    volumes:
+      - ./backend:/app:z
+      - /app/tmp
+      - /app/vendor
+      - go-mod-cache:/go/pkg/mod
     depends_on:
       postgres:
         condition: service_healthy
@@ -63,4 +68,5 @@ networks:
 
 volumes:
   postgres_data:
+  go-mod-cache:
 
