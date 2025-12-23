@@ -1,11 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { OKR, Category } from '@/types';
 import { okrsAPI, categoriesAPI } from '@/lib/api';
 import OKRCard from './OKRCard';
 
 export default function Dashboard() {
+  const router = useRouter();
   const [okrs, setOKRs] = useState<OKR[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
@@ -72,7 +74,15 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-4xl font-bold text-gray-900 mb-8">Dashboard - Conquista AI</h1>
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-4xl font-bold text-gray-900">Dashboard - Conquista AI</h1>
+          <button
+            onClick={() => router.push('/okrs/new')}
+            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            + Criar Novo OKR
+          </button>
+        </div>
 
         {/* Estatísticas */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -125,7 +135,13 @@ export default function Dashboard() {
           <h2 className="text-2xl font-semibold mb-4">OKRs</h2>
           {okrs.length === 0 ? (
             <div className="bg-white rounded-lg shadow p-8 text-center">
-              <p className="text-gray-500">Nenhum OKR encontrado</p>
+              <p className="text-gray-500 mb-4">Nenhum OKR encontrado</p>
+              <button
+                onClick={() => router.push('/okrs/new')}
+                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Criar Primeiro OKR
+              </button>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
