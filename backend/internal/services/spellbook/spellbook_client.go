@@ -38,6 +38,20 @@ type TopicsResponse struct {
 }
 
 // ============================================================================
+// Key Results API Types
+// ============================================================================
+
+type KeyResultsRequest struct {
+	Objective string `json:"objective"`
+	Count     int    `json:"count"`
+}
+
+type KeyResultsResponse struct {
+	Objective  string   `json:"objective"`
+	KeyResults []string `json:"key_results"`
+}
+
+// ============================================================================
 // Roadmap API Types
 // ============================================================================
 
@@ -123,6 +137,44 @@ func (c *Client) GenerateTopics(subject string, count int) (*TopicsResponse, err
 	}
 
 	return &topicsResp, nil
+}
+
+func (c *Client) GenerateKeyResults(objective string, count int) (*KeyResultsResponse, error) {
+	reqBody := KeyResultsRequest{
+		Objective: objective,
+		Count:     count,
+	}
+
+	jsonData, err := json.Marshal(reqBody)
+	if err != nil {
+		return nil, fmt.Errorf("erro ao serializar requisição: %w", err)
+	}
+
+	url := fmt.Sprintf("%s/api/v1/key-results", c.baseURL)
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return nil, fmt.Errorf("erro ao criar requisição: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("erro ao fazer requisição: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("erro na API Spellbook: status %d, body: %s", resp.StatusCode, string(body))
+	}
+
+	var keyResultsResp KeyResultsResponse
+	if err := json.NewDecoder(resp.Body).Decode(&keyResultsResp); err != nil {
+		return nil, fmt.Errorf("erro ao decodificar resposta: %w", err)
+	}
+
+	return &keyResultsResp, nil
 }
 
 func (c *Client) GenerateRoadmap(topic string) (*RoadmapResponse, error) {

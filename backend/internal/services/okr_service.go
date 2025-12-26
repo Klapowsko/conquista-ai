@@ -52,17 +52,17 @@ func (s *OKRService) CreateOKR(req models.CreateOKRRequest) (*models.OKR, error)
 }
 
 func (s *OKRService) generateKeyResults(okrID int64, objective string) error {
-	// Usar o endpoint /topics do Spellbook para gerar Key Results
-	topicsResp, err := s.spellbookClient.GenerateTopics(objective, 5)
+	// Usar o endpoint /key-results do Spellbook para gerar Key Results
+	keyResultsResp, err := s.spellbookClient.GenerateKeyResults(objective, 5)
 	if err != nil {
 		return fmt.Errorf("erro ao gerar Key Results: %w", err)
 	}
 
 	var keyResults []models.KeyResult
-	for _, topic := range topicsResp.Topics {
+	for _, keyResult := range keyResultsResp.KeyResults {
 		keyResults = append(keyResults, models.KeyResult{
 			OKRID:     okrID,
-			Title:     topic,
+			Title:     keyResult,
 			Completed: false,
 		})
 	}
