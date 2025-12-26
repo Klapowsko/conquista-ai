@@ -95,4 +95,4 @@ migrate-prod: ## Executa migrations em produção
 	fi
 	@echo "Criando .env temporário na raiz para docker-compose..."
 	@cat backend/.env frontend/.env 2>/dev/null | grep -v "^#" | grep -v "^$$" | grep "=" > .env || true
-	@docker compose -f docker-compose.prod.yml exec backend go run -mod=mod cmd/migrate/main.go; EXIT_CODE=$$?; rm -f .env; exit $$EXIT_CODE
+	@docker compose -f docker-compose.prod.yml exec backend ./migrate; EXIT_CODE=$$?; rm -f .env; exit $$EXIT_CODE

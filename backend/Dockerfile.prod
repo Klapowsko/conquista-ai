@@ -19,6 +19,9 @@ RUN rm -rf vendor || true
 # Build da aplicação (usando -mod=mod para ignorar vendor)
 RUN CGO_ENABLED=0 GOOS=linux go build -mod=mod -a -installsuffix cgo -o server ./cmd/server/main.go
 
+# Build do binário de migrate
+RUN CGO_ENABLED=0 GOOS=linux go build -mod=mod -a -installsuffix cgo -o migrate ./cmd/migrate/main.go
+
 # Production stage
 FROM alpine:latest
 
@@ -27,8 +30,12 @@ WORKDIR /app
 # Instalar ca-certificates para HTTPS
 RUN apk --no-cache add ca-certificates
 
-# Copiar binário do builder
+# Copiar binários do builder
 COPY --from=builder /app/server .
+COPY --from=builder /app/migrate .
+
+# Copiar migrations
+COPY --from=builder /app/migrations ./migrations
 
 EXPOSE 8080
 
