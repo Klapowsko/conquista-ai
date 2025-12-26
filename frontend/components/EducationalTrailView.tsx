@@ -105,10 +105,6 @@ export default function EducationalTrailView({ trail: initialTrail }: Educationa
     }
   };
 
-  const getResourceInfo = (resourceId: string) => {
-    return trail.resources[resourceId];
-  };
-
   const renderActivity = (activity: TrailActivity, stepIndex: number, activityIndex: number) => {
     const key = `${stepIndex}-${activityIndex}`;
     // Usar o estado da atividade ou o estado local
