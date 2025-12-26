@@ -6,6 +6,10 @@ import { categoriesAPI } from '@/lib/api';
 import CategoryTooltip from '@/components/CategoryTooltip';
 import { getAllFixedCategories } from '@/lib/categories';
 
+export default function CategoriesPage() {
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
     loadCategories();
   }, []);
