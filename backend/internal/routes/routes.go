@@ -13,7 +13,7 @@ func SetupRoutes(
 	keyResultHandler *handlers.KeyResultHandler,
 	roadmapHandler *handlers.RoadmapHandler,
 ) {
-	router.Use(middleware.CORSMiddleware())
+	middleware.SetupCORS(router)
 
 	// Health check
 	router.GET("/health", func(c *gin.Context) {
