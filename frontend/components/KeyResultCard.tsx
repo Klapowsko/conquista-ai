@@ -4,6 +4,7 @@ import { KeyResult } from '@/types';
 import { keyResultsAPI, roadmapsAPI } from '@/lib/api';
 import { useState } from 'react';
 import RoadmapView from './RoadmapView';
+import StatusBadge from './StatusBadge';
 
 interface KeyResultCardProps {
   keyResult: KeyResult;
@@ -74,37 +75,43 @@ export default function KeyResultCard({ keyResult, onUpdate }: KeyResultCardProp
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 mb-4">
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <div className="flex items-center gap-3">
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-4 hover:shadow-md transition-all">
+      <div className="flex items-start justify-between mb-4">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start gap-3">
             <input
               type="checkbox"
               checked={keyResult.completed}
               onChange={handleToggleComplete}
-              className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500"
+              className="w-5 h-5 mt-1 text-blue-600 rounded focus:ring-blue-500 cursor-pointer transition-all"
             />
-            <h4 className={`text-lg font-medium ${keyResult.completed ? 'line-through text-gray-500' : 'text-gray-900'}`}>
-              {keyResult.title}
-            </h4>
+            <div className="flex-1 min-w-0">
+              <h4 className={`text-lg font-semibold mb-2 ${keyResult.completed ? 'line-through text-gray-500' : 'text-gray-900'}`}>
+                {keyResult.title}
+              </h4>
+              <StatusBadge 
+                status={keyResult.completed ? 'complete' : 'in-progress'} 
+                size="sm"
+              />
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="mt-4 flex gap-2 flex-wrap">
+      <div className="mt-4 pt-4 border-t border-gray-100 flex gap-2 flex-wrap">
         {!showRoadmap && (
           <>
             <button
               onClick={handleGenerateRoadmap}
               disabled={loading}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md font-medium text-sm"
             >
               {loading ? 'Gerando...' : 'Gerar Roadmap'}
             </button>
             <button
               onClick={handleLoadRoadmap}
               disabled={loading}
-              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium text-sm"
             >
               Ver Roadmap
             </button>
@@ -113,7 +120,7 @@ export default function KeyResultCard({ keyResult, onUpdate }: KeyResultCardProp
         {showRoadmap && (
           <button
             onClick={() => setShowRoadmap(false)}
-            className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium text-sm"
           >
             Ocultar Roadmap
           </button>
@@ -121,14 +128,14 @@ export default function KeyResultCard({ keyResult, onUpdate }: KeyResultCardProp
         <button
           onClick={handleDelete}
           disabled={loading}
-          className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed ml-auto"
+          className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium text-sm ml-auto"
         >
           Deletar
         </button>
       </div>
 
       {showRoadmap && roadmap && (
-        <div className="mt-4">
+        <div className="mt-4 pt-4 border-t border-gray-100">
           <RoadmapView roadmap={roadmap} />
         </div>
       )}
