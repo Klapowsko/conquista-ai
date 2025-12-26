@@ -13,8 +13,11 @@ RUN go mod download
 # Copiar código fonte
 COPY . .
 
-# Build da aplicação
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o server ./cmd/server/main.go
+# Remover vendor se existir (para evitar conflitos de vendoring)
+RUN rm -rf vendor || true
+
+# Build da aplicação (usando -mod=mod para ignorar vendor)
+RUN CGO_ENABLED=0 GOOS=linux go build -mod=mod -a -installsuffix cgo -o server ./cmd/server/main.go
 
 # Production stage
 FROM alpine:latest
