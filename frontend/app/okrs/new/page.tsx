@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Category } from '@/types';
 import { okrsAPI, categoriesAPI } from '@/lib/api';
+import CategoryTooltip from '@/components/CategoryTooltip';
 
 export default function NewOKRPage() {
   const router = useRouter();
@@ -80,9 +81,21 @@ export default function NewOKRPage() {
             </div>
 
             <div className="mb-6">
-              <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-2">
-                Categoria
-              </label>
+              <div className="flex items-center gap-2 mb-2">
+                <label htmlFor="category" className="block text-sm font-medium text-gray-700">
+                  Categoria
+                </label>
+                {categoryId && categories.find(c => c.id === categoryId) && (
+                  <CategoryTooltip 
+                    categoryName={categories.find(c => c.id === categoryId)!.name} 
+                    position="right"
+                  >
+                    <span className="text-xs text-blue-600 cursor-help hover:text-blue-700">
+                      ℹ️ Ver subcategorias
+                    </span>
+                  </CategoryTooltip>
+                )}
+              </div>
               <select
                 id="category"
                 value={categoryId}
@@ -97,6 +110,11 @@ export default function NewOKRPage() {
                   </option>
                 ))}
               </select>
+              {categoryId && categories.find(c => c.id === categoryId) && (
+                <p className="mt-2 text-xs text-gray-500">
+                  Passe o mouse sobre o ícone ℹ️ para ver as subcategorias desta categoria
+                </p>
+              )}
             </div>
 
             <div className="flex gap-4">

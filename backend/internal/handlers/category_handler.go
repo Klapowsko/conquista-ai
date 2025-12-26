@@ -18,22 +18,8 @@ func NewCategoryHandler(repo *repositories.CategoryRepository) *CategoryHandler 
 }
 
 func (h *CategoryHandler) Create(c *gin.Context) {
-	var req models.CreateCategoryRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "dados inválidos"})
-		return
-	}
-
-	category := &models.Category{
-		Name: req.Name,
-	}
-
-	if err := h.repo.Create(category); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "erro ao criar categoria"})
-		return
-	}
-
-	c.JSON(http.StatusCreated, category)
+	// Categorias são fixas e não podem ser criadas
+	c.JSON(http.StatusForbidden, gin.H{"error": "categorias são fixas e não podem ser criadas. Use apenas: Pessoal, Profissional ou Social"})
 }
 
 func (h *CategoryHandler) GetAll(c *gin.Context) {
@@ -101,17 +87,7 @@ func (h *CategoryHandler) Update(c *gin.Context) {
 }
 
 func (h *CategoryHandler) Delete(c *gin.Context) {
-	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "ID inválido"})
-		return
-	}
-
-	if err := h.repo.Delete(id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "erro ao deletar categoria"})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "categoria deletada com sucesso"})
+	// Categorias são fixas e não podem ser deletadas
+	c.JSON(http.StatusForbidden, gin.H{"error": "categorias são fixas e não podem ser deletadas"})
 }
 

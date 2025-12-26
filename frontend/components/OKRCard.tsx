@@ -4,6 +4,7 @@ import { OKR } from '@/types';
 import Link from 'next/link';
 import ProgressBar from './ProgressBar';
 import StatusBadge from './StatusBadge';
+import CategoryTooltip from './CategoryTooltip';
 import { getOKRStatus } from '@/lib/utils';
 
 interface OKRCardProps {
@@ -26,9 +27,11 @@ export default function OKRCard({ okr, onDelete, progress = 0 }: OKRCardProps) {
           </Link>
           <div className="flex items-center gap-2 flex-wrap">
             {okr.category && (
-              <span className="inline-block px-3 py-1 bg-blue-50 text-blue-700 text-xs font-medium rounded-full border border-blue-200">
-                {okr.category.name}
-              </span>
+              <CategoryTooltip categoryName={okr.category.name} position="top">
+                <span className="inline-block px-3 py-1 bg-blue-50 text-blue-700 text-xs font-medium rounded-full border border-blue-200 cursor-help hover:bg-blue-100 transition-colors">
+                  {okr.category.name}
+                </span>
+              </CategoryTooltip>
             )}
             <StatusBadge status={status} size="sm" />
           </div>

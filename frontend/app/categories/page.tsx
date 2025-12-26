@@ -3,12 +3,8 @@
 import { useEffect, useState } from 'react';
 import { Category } from '@/types';
 import { categoriesAPI } from '@/lib/api';
-
-export default function CategoriesPage() {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [newCategoryName, setNewCategoryName] = useState('');
-  const [showForm, setShowForm] = useState(false);
+import CategoryTooltip from '@/components/CategoryTooltip';
+import { getAllFixedCategories } from '@/lib/categories';
 
   useEffect(() => {
     loadCategories();
@@ -17,7 +13,11 @@ export default function CategoriesPage() {
   const loadCategories = async () => {
     try {
       const data = await categoriesAPI.getAll();
-      setCategories(data);
+      // Filtrar apenas as categorias fixas
+      const fixedCategories = getAllFixedCategories();
+      const fixedNames = fixedCategories.map(c => c.name);
+      const filtered = data.filter(cat => fixedNames.includes(cat.name));
+      setCategories(filtered);
     } catch (error) {
       console.error('Erro ao carregar categorias:', error);
     } finally {
@@ -25,95 +25,67 @@ export default function CategoriesPage() {
     }
   };
 
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newCategoryName.trim()) {
-      alert('Nome da categoria é obrigatório');
-      return;
-    }
-
-    try {
-      await categoriesAPI.create({ name: newCategoryName });
-      setNewCategoryName('');
-      setShowForm(false);
-      loadCategories();
-    } catch (error) {
-      console.error('Erro ao criar categoria:', error);
-      alert('Erro ao criar categoria');
-    }
-  };
-
-  const handleDelete = async (id: number) => {
-    if (!confirm('Tem certeza que deseja deletar esta categoria?')) {
-      return;
-    }
-
-    try {
-      await categoriesAPI.delete(id);
-      loadCategories();
-    } catch (error) {
-      console.error('Erro ao deletar categoria:', error);
-      alert('Erro ao deletar categoria');
-    }
-  };
-
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-lg">Carregando...</div>
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <div className="text-lg text-gray-600">Carregando...</div>
+        </div>
       </div>
     );
   }
 
+  const fixedCategories = getAllFixedCategories();
+
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900">Categorias</h1>
-          <button
-            onClick={() => setShowForm(!showForm)}
-            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            {showForm ? 'Cancelar' : 'Nova Categoria'}
-          </button>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-gray-50 p-8">
+      <div className="max-w-6xl mx-auto">
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-bold text-gray-900 mb-3">Categorias</h1>
+          <p className="text-gray-600 text-lg">Os três pilares da sua vida</p>
         </div>
 
-        {showForm && (
-          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-            <h2 className="text-xl font-semibold mb-4">Criar Nova Categoria</h2>
-            <form onSubmit={handleCreate}>
-              <div className="mb-4">
-                <input
-                  type="text"
-                  value={newCategoryName}
-                  onChange={(e) => setNewCategoryName(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Nome da categoria"
-                  required
-                />
-              </div>
-              <button
-                type="submit"
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-              >
-                Criar
-              </button>
-            </form>
-          </div>
-        )}
+        {/* Layout em Tripé */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+          {fixedCategories.map((categoryData, index) => {
+            const category = categories.find(c => c.name === categoryData.name);
+            if (!category) return null;
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {categories.map((category) => (
-            <div key={category.id} className="bg-white rounded-lg shadow-md p-6">
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">{category.name}</h3>
-              <button
-                onClick={() => handleDelete(category.id)}
-                className="text-red-500 hover:text-red-700 text-sm"
-              >
-                Deletar
-              </button>
-            </div>
-          ))}
+            const colors = [
+              { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-700', icon: 'bg-blue-100' },
+              { bg: 'bg-green-50', border: 'border-green-200', text: 'text-green-700', icon: 'bg-green-100' },
+              { bg: 'bg-purple-50', border: 'border-purple-200', text: 'text-purple-700', icon: 'bg-purple-100' },
+            ];
+            const color = colors[index % colors.length];
+
+            return (
+              <CategoryTooltip key={category.id} categoryName={category.name} position="top">
+                <div className={`${color.bg} ${color.border} border-2 rounded-xl p-8 hover:shadow-lg transition-all cursor-help h-full`}>
+                  <div className="text-center">
+                    <div className={`${color.icon} w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4`}>
+                      <span className="text-2xl font-bold">{category.name.charAt(0)}</span>
+                    </div>
+                    <h3 className={`text-2xl font-bold ${color.text} mb-2`}>{category.name}</h3>
+                    {categoryData.description && (
+                      <p className="text-sm text-gray-600 mb-4">{categoryData.description}</p>
+                    )}
+                    <div className="mt-4">
+                      <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">Passe o mouse para ver subcategorias</p>
+                    </div>
+                  </div>
+                </div>
+              </CategoryTooltip>
+            );
+          })}
+        </div>
+
+        {/* Informação adicional */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 text-center">
+          <p className="text-gray-600">
+            <span className="font-semibold">Nota:</span> As categorias são fixas e representam os três pilares fundamentais.
+            Passe o mouse sobre cada categoria para ver suas subcategorias.
+          </p>
         </div>
       </div>
     </div>

@@ -6,6 +6,7 @@ import { OKR, Category, KeyResult } from '@/types';
 import { okrsAPI, categoriesAPI, keyResultsAPI } from '@/lib/api';
 import OKRCard from './OKRCard';
 import StatCard from './StatCard';
+import CategoryTooltip from './CategoryTooltip';
 import { calculateOKRProgress } from '@/lib/utils';
 
 export default function Dashboard() {
@@ -202,17 +203,18 @@ export default function Dashboard() {
               Todas
             </button>
             {categories.map((category) => (
-              <button
-                key={category.id}
-                onClick={() => setSelectedCategory(category.id)}
-                className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                  selectedCategory === category.id
-                    ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                {category.name}
-              </button>
+              <CategoryTooltip key={category.id} categoryName={category.name} position="bottom">
+                <button
+                  onClick={() => setSelectedCategory(category.id)}
+                  className={`px-4 py-2 rounded-lg font-medium transition-all cursor-help ${
+                    selectedCategory === category.id
+                      ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {category.name}
+                </button>
+              </CategoryTooltip>
             ))}
           </div>
         </div>

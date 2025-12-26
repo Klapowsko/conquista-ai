@@ -7,6 +7,7 @@ import { okrsAPI, keyResultsAPI } from '@/lib/api';
 import KeyResultCard from '@/components/KeyResultCard';
 import ProgressBar from '@/components/ProgressBar';
 import StatusBadge from '@/components/StatusBadge';
+import CategoryTooltip from '@/components/CategoryTooltip';
 import { calculateOKRProgress, getOKRStatus } from '@/lib/utils';
 
 export default function OKRDetailPage() {
@@ -122,9 +123,11 @@ export default function OKRDetailPage() {
               <h1 className="text-3xl font-bold text-gray-900 mb-3">{okr.objective}</h1>
               <div className="flex items-center gap-3 flex-wrap">
                 {okr.category && (
-                  <span className="inline-block px-3 py-1 bg-blue-50 text-blue-700 text-sm font-medium rounded-full border border-blue-200">
-                    {okr.category.name}
-                  </span>
+                  <CategoryTooltip categoryName={okr.category.name} position="bottom">
+                    <span className="inline-block px-3 py-1 bg-blue-50 text-blue-700 text-sm font-medium rounded-full border border-blue-200 cursor-help hover:bg-blue-100 transition-colors">
+                      {okr.category.name}
+                    </span>
+                  </CategoryTooltip>
                 )}
                 <StatusBadge status={status} />
               </div>
