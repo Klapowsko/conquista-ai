@@ -62,6 +62,11 @@ export interface UpdateOKRRequest {
   category_id: number;
 }
 
+export interface CreateKeyResultRequest {
+  okr_id: number;
+  title: string;
+}
+
 export interface UpdateKeyResultRequest {
   title: string;
   completed: boolean;

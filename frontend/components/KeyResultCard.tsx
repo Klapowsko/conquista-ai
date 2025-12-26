@@ -56,6 +56,23 @@ export default function KeyResultCard({ keyResult, onUpdate }: KeyResultCardProp
     }
   };
 
+  const handleDelete = async () => {
+    if (!confirm(`Tem certeza que deseja deletar o Key Result "${keyResult.title}"?`)) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await keyResultsAPI.delete(keyResult.id);
+      onUpdate();
+    } catch (error) {
+      console.error('Erro ao deletar Key Result:', error);
+      alert('Erro ao deletar Key Result');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-md p-6 mb-4">
       <div className="flex items-start justify-between">
@@ -74,7 +91,7 @@ export default function KeyResultCard({ keyResult, onUpdate }: KeyResultCardProp
         </div>
       </div>
 
-      <div className="mt-4 flex gap-2">
+      <div className="mt-4 flex gap-2 flex-wrap">
         {!showRoadmap && (
           <>
             <button
@@ -101,6 +118,13 @@ export default function KeyResultCard({ keyResult, onUpdate }: KeyResultCardProp
             Ocultar Roadmap
           </button>
         )}
+        <button
+          onClick={handleDelete}
+          disabled={loading}
+          className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed ml-auto"
+        >
+          Deletar
+        </button>
       </div>
 
       {showRoadmap && roadmap && (

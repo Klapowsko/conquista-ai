@@ -53,29 +53,49 @@ migrate: ## Executa migrations
 
 # Comandos de Produção
 build-prod: ## Constrói imagens Docker de produção
-	@if [ ! -f backend/.env ]; then \
-		echo "Criando backend/.env a partir do backend/.env.example..."; \
-		cp backend/.env.example backend/.env; \
+	@if [ ! -f backend/.env.prod ]; then \
+		echo "Criando backend/.env.prod a partir do backend/.env.prod.example..."; \
+		if [ -f backend/.env.prod.example ]; then \
+			cp backend/.env.prod.example backend/.env.prod; \
+		else \
+			echo "ERRO: backend/.env.prod.example não encontrado!"; \
+			exit 1; \
+		fi; \
 	fi
-	@if [ ! -f frontend/.env ]; then \
-		echo "Criando frontend/.env a partir do frontend/.env.example..."; \
-		cp frontend/.env.example frontend/.env; \
+	@if [ ! -f frontend/.env.prod ]; then \
+		echo "Criando frontend/.env.prod a partir do frontend/.env.prod.example..."; \
+		if [ -f frontend/.env.prod.example ]; then \
+			cp frontend/.env.prod.example frontend/.env.prod; \
+		else \
+			echo "ERRO: frontend/.env.prod.example não encontrado!"; \
+			exit 1; \
+		fi; \
 	fi
 	@echo "Criando .env temporário na raiz para docker-compose..."
-	@cat backend/.env frontend/.env 2>/dev/null | grep -v "^#" | grep -v "^$$" | grep "=" > .env || true
+	@cat backend/.env.prod frontend/.env.prod 2>/dev/null | grep -v "^#" | grep -v "^$$" | grep "=" > .env || true
 	@docker compose -f docker-compose.prod.yml build; EXIT_CODE=$$?; rm -f .env; exit $$EXIT_CODE
 
 up-prod: ## Inicia serviços de produção
-	@if [ ! -f backend/.env ]; then \
-		echo "Criando backend/.env a partir do backend/.env.example..."; \
-		cp backend/.env.example backend/.env; \
+	@if [ ! -f backend/.env.prod ]; then \
+		echo "Criando backend/.env.prod a partir do backend/.env.prod.example..."; \
+		if [ -f backend/.env.prod.example ]; then \
+			cp backend/.env.prod.example backend/.env.prod; \
+		else \
+			echo "ERRO: backend/.env.prod.example não encontrado!"; \
+			exit 1; \
+		fi; \
 	fi
-	@if [ ! -f frontend/.env ]; then \
-		echo "Criando frontend/.env a partir do frontend/.env.example..."; \
-		cp frontend/.env.example frontend/.env; \
+	@if [ ! -f frontend/.env.prod ]; then \
+		echo "Criando frontend/.env.prod a partir do frontend/.env.prod.example..."; \
+		if [ -f frontend/.env.prod.example ]; then \
+			cp frontend/.env.prod.example frontend/.env.prod; \
+		else \
+			echo "ERRO: frontend/.env.prod.example não encontrado!"; \
+			exit 1; \
+		fi; \
 	fi
 	@echo "Criando .env temporário na raiz para docker-compose..."
-	@cat backend/.env frontend/.env 2>/dev/null | grep -v "^#" | grep -v "^$$" | grep "=" > .env || true
+	@cat backend/.env.prod frontend/.env.prod 2>/dev/null | grep -v "^#" | grep -v "^$$" | grep "=" > .env || true
 	@docker compose -f docker-compose.prod.yml up -d; EXIT_CODE=$$?; rm -f .env; exit $$EXIT_CODE
 
 down-prod: ## Para serviços de produção
@@ -85,14 +105,24 @@ logs-prod: ## Mostra logs de produção
 	@docker compose -f docker-compose.prod.yml logs -f
 
 migrate-prod: ## Executa migrations em produção
-	@if [ ! -f backend/.env ]; then \
-		echo "Criando backend/.env a partir do backend/.env.example..."; \
-		cp backend/.env.example backend/.env; \
+	@if [ ! -f backend/.env.prod ]; then \
+		echo "Criando backend/.env.prod a partir do backend/.env.prod.example..."; \
+		if [ -f backend/.env.prod.example ]; then \
+			cp backend/.env.prod.example backend/.env.prod; \
+		else \
+			echo "ERRO: backend/.env.prod.example não encontrado!"; \
+			exit 1; \
+		fi; \
 	fi
-	@if [ ! -f frontend/.env ]; then \
-		echo "Criando frontend/.env a partir do frontend/.env.example..."; \
-		cp frontend/.env.example frontend/.env; \
+	@if [ ! -f frontend/.env.prod ]; then \
+		echo "Criando frontend/.env.prod a partir do frontend/.env.prod.example..."; \
+		if [ -f frontend/.env.prod.example ]; then \
+			cp frontend/.env.prod.example frontend/.env.prod; \
+		else \
+			echo "ERRO: frontend/.env.prod.example não encontrado!"; \
+			exit 1; \
+		fi; \
 	fi
 	@echo "Criando .env temporário na raiz para docker-compose..."
-	@cat backend/.env frontend/.env 2>/dev/null | grep -v "^#" | grep -v "^$$" | grep "=" > .env || true
+	@cat backend/.env.prod frontend/.env.prod 2>/dev/null | grep -v "^#" | grep -v "^$$" | grep "=" > .env || true
 	@docker compose -f docker-compose.prod.yml exec backend ./migrate; EXIT_CODE=$$?; rm -f .env; exit $$EXIT_CODE

@@ -52,7 +52,7 @@ func NewApp() (*App, error) {
 	// Handlers
 	categoryHandler := handlers.NewCategoryHandler(categoryRepo)
 	okrHandler := handlers.NewOKRHandler(okrService)
-	keyResultHandler := handlers.NewKeyResultHandler(keyResultRepo)
+	keyResultHandler := handlers.NewKeyResultHandler(keyResultRepo, okrRepo)
 	roadmapHandler := handlers.NewRoadmapHandler(roadmapService)
 
 	// Router

@@ -8,6 +8,7 @@ import {
   CreateCategoryRequest,
   CreateOKRRequest,
   UpdateOKRRequest,
+  CreateKeyResultRequest,
   UpdateKeyResultRequest,
 } from '@/types';
 
@@ -66,6 +67,8 @@ export const okrsAPI = {
 export const keyResultsAPI = {
   getByOKRId: (okrId: number): Promise<KeyResult[]> =>
     fetchAPI<KeyResult[]>(`/okrs/${okrId}/key-results`),
+  create: (data: CreateKeyResultRequest): Promise<KeyResult> =>
+    fetchAPI<KeyResult>('/key-results', { method: 'POST', body: JSON.stringify(data) }),
   update: (id: number, data: UpdateKeyResultRequest): Promise<KeyResult> =>
     fetchAPI<KeyResult>(`/key-results/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   delete: (id: number): Promise<void> =>

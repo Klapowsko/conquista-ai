@@ -3,7 +3,7 @@ services:
     image: postgres:15-alpine
     container_name: conquista-postgres-prod
     env_file:
-      - backend/.env
+      - backend/.env.prod
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -27,7 +27,7 @@ services:
       dockerfile: Dockerfile.prod
     container_name: conquista-backend-prod
     env_file:
-      - backend/.env
+      - backend/.env.prod
     ports:
       - "${BACKEND_PORT}:8080"
     environment:
@@ -47,7 +47,7 @@ services:
       dockerfile: Dockerfile.prod
     container_name: conquista-frontend-prod
     env_file:
-      - frontend/.env
+      - frontend/.env.prod
     ports:
       - "${FRONTEND_PORT}:3000"
     environment:

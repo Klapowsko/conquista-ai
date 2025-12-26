@@ -9,9 +9,9 @@ import (
 )
 
 type OKRService struct {
-	okrRepo        *repositories.OKRRepository
-	keyResultRepo  *repositories.KeyResultRepository
-	categoryRepo   *repositories.CategoryRepository
+	okrRepo         *repositories.OKRRepository
+	keyResultRepo   *repositories.KeyResultRepository
+	categoryRepo    *repositories.CategoryRepository
 	spellbookClient *spellbook.Client
 }
 
@@ -22,9 +22,9 @@ func NewOKRService(
 	spellbookClient *spellbook.Client,
 ) *OKRService {
 	return &OKRService{
-		okrRepo:        okrRepo,
-		keyResultRepo:  keyResultRepo,
-		categoryRepo:   categoryRepo,
+		okrRepo:         okrRepo,
+		keyResultRepo:   keyResultRepo,
+		categoryRepo:    categoryRepo,
 		spellbookClient: spellbookClient,
 	}
 }
@@ -46,12 +46,6 @@ func (s *OKRService) CreateOKR(req models.CreateOKRRequest) (*models.OKR, error)
 
 	if err := s.okrRepo.Create(okr); err != nil {
 		return nil, fmt.Errorf("erro ao criar OKR: %w", err)
-	}
-
-	// Gerar Key Results automaticamente via Spellbook
-	if err := s.generateKeyResults(okr.ID, okr.Objective); err != nil {
-		// Log erro mas não falha a criação do OKR
-		fmt.Printf("Aviso: erro ao gerar Key Results: %v\n", err)
 	}
 
 	return okr, nil
@@ -126,4 +120,3 @@ func (s *OKRService) GenerateKeyResults(okrID int64) error {
 
 	return s.generateKeyResults(okrID, okr.Objective)
 }
-

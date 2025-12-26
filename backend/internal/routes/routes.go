@@ -46,6 +46,7 @@ func SetupRoutes(
 			okrs.POST("/generate-key-results", okrHandler.GenerateKeyResults)
 			okrs.GET("/key-results", keyResultHandler.GetByOKRID)
 		}
+		api.POST("/key-results", keyResultHandler.Create)
 		api.PUT("/key-results/:id", keyResultHandler.Update)
 		api.DELETE("/key-results/:id", keyResultHandler.Delete)
 

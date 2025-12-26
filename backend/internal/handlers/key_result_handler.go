@@ -10,11 +10,47 @@ import (
 )
 
 type KeyResultHandler struct {
-	repo *repositories.KeyResultRepository
+	repo     *repositories.KeyResultRepository
+	okrRepo  *repositories.OKRRepository
 }
 
-func NewKeyResultHandler(repo *repositories.KeyResultRepository) *KeyResultHandler {
-	return &KeyResultHandler{repo: repo}
+func NewKeyResultHandler(repo *repositories.KeyResultRepository, okrRepo *repositories.OKRRepository) *KeyResultHandler {
+	return &KeyResultHandler{
+		repo:    repo,
+		okrRepo: okrRepo,
+	}
+}
+
+func (h *KeyResultHandler) Create(c *gin.Context) {
+	var req models.CreateKeyResultRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "dados inválidos"})
+		return
+	}
+
+	// Validar se o OKR existe
+	okr, err := h.okrRepo.GetByID(req.OKRID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "erro ao buscar OKR"})
+		return
+	}
+	if okr == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "OKR não encontrado"})
+		return
+	}
+
+	keyResult := &models.KeyResult{
+		OKRID:     req.OKRID,
+		Title:     req.Title,
+		Completed: false,
+	}
+
+	if err := h.repo.Create(keyResult); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "erro ao criar Key Result"})
+		return
+	}
+
+	c.JSON(http.StatusCreated, keyResult)
 }
 
 func (h *KeyResultHandler) GetByOKRID(c *gin.Context) {

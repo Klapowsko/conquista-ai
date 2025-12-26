@@ -15,9 +15,14 @@ func SetupCORS(router *gin.Engine) {
 	case allowedOrigins == "":
 		// Defaults: dev hosts + produção
 		config.AllowOrigins = []string{
+			"http://localhost:3000",
+			"http://localhost:3001",
 			"http://localhost:3003",
-			"http://localhost:3003",
-			"http://hiagoserver.local:3003",
+			"http://127.0.0.1:3000",
+			"http://127.0.0.1:3001",
+			"http://127.0.0.1:3003",
+			"http://hiagoserver.local:3000",
+			"http://hiagoserver.local:3001",
 			"http://hiagoserver.local:3003",
 			"http://hiagoserver.local",
 			"https://conquista-ai-api.klapowsko.com",
