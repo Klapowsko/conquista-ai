@@ -144,15 +144,34 @@ export default function EducationalTrailView({ trail: initialTrail }: Educationa
             )}
             
             {resource && (
-              <div className="bg-gray-50 rounded p-3 mb-2">
-                <p className="text-sm font-medium text-gray-700 mb-1">
-                  📚 {resource.title}
-                </p>
-                {resource.author && (
-                  <p className="text-xs text-gray-500">Autor: {resource.author}</p>
-                )}
-                {resource.description && (
-                  <p className="text-xs text-gray-600 mt-1">{resource.description}</p>
+              <div className={`rounded p-3 mb-2 ${resource.url ? 'bg-gray-50' : 'bg-amber-50 border border-amber-200'}`}>
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-700 mb-1">
+                      📚 {resource.title}
+                    </p>
+                    {resource.author && (
+                      <p className="text-xs text-gray-500">Autor: {resource.author}</p>
+                    )}
+                    {resource.description && (
+                      <p className="text-xs text-gray-600 mt-1">{resource.description}</p>
+                    )}
+                  </div>
+                  {!resource.url && (
+                    <span className="text-xs text-amber-600 ml-2" title="Este recurso não possui link disponível">
+                      ⚠️
+                    </span>
+                  )}
+                </div>
+                {resource.url && (
+                  <a
+                    href={resource.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-blue-600 hover:text-blue-800 mt-2 inline-block"
+                  >
+                    🔗 Acessar recurso →
+                  </a>
                 )}
               </div>
             )}
@@ -177,7 +196,7 @@ export default function EducationalTrailView({ trail: initialTrail }: Educationa
               )}
             </div>
 
-            {activity.url && (
+            {activity.url ? (
               <a
                 href={activity.url}
                 target="_blank"
@@ -186,6 +205,10 @@ export default function EducationalTrailView({ trail: initialTrail }: Educationa
               >
                 🔗 Acessar recurso →
               </a>
+            ) : (
+              <span className="text-xs text-gray-400 mt-2 inline-block">
+                ⚠️ Link não disponível
+              </span>
             )}
           </div>
         </div>

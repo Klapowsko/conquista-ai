@@ -6,6 +6,7 @@ import (
 	"github.com/conquista-ai/conquista-ai/internal/models"
 	"github.com/conquista-ai/conquista-ai/internal/repositories"
 	"github.com/conquista-ai/conquista-ai/internal/services/spellbook"
+	"github.com/conquista-ai/conquista-ai/internal/utils"
 )
 
 type RoadmapService struct {
@@ -231,7 +232,7 @@ func (s *RoadmapService) GenerateEducationalTrail(roadmapItemID int64, itemTitle
 		Resources:     make(map[string]models.TrailResource),
 	}
 
-	// Converter recursos
+	// Converter recursos e validar URLs
 	for resourceID, resourceResp := range trailResp.Resources {
 		resource := models.TrailResource{
 			ResourceID:  resourceID,
@@ -242,6 +243,17 @@ func (s *RoadmapService) GenerateEducationalTrail(roadmapItemID int64, itemTitle
 			Duration:    resourceResp.Duration,
 			URL:         resourceResp.URL,
 		}
+		
+		// Validar URL do recurso
+		if resource.URL != "" {
+			valid, err := utils.ValidateURL(resource.URL)
+			if !valid || err != nil {
+				// Logar URL inválida mas não falhar - apenas remover URL
+				fmt.Printf("URL inválida removida do recurso %s: %s - Erro: %v\n", resourceID, resource.URL, err)
+				resource.URL = ""
+			}
+		}
+		
 		trail.Resources[resourceID] = resource
 	}
 
@@ -254,7 +266,7 @@ func (s *RoadmapService) GenerateEducationalTrail(roadmapItemID int64, itemTitle
 			Activities:  make([]models.TrailActivity, 0),
 		}
 
-		// Converter atividades
+		// Converter atividades e validar URLs
 		for _, activityResp := range stepResp.Activities {
 			activity := models.TrailActivity{
 				Type:        activityResp.Type,
@@ -267,6 +279,17 @@ func (s *RoadmapService) GenerateEducationalTrail(roadmapItemID int64, itemTitle
 				Progress:    activityResp.Progress,
 				Completed:   false,
 			}
+			
+			// Validar URL da atividade
+			if activity.URL != "" {
+				valid, err := utils.ValidateURL(activity.URL)
+				if !valid || err != nil {
+					// Logar URL inválida mas não falhar - apenas remover URL
+					fmt.Printf("URL inválida removida da atividade %s: %s - Erro: %v\n", activity.Title, activity.URL, err)
+					activity.URL = ""
+				}
+			}
+			
 			step.Activities = append(step.Activities, activity)
 		}
 
@@ -283,6 +306,10 @@ func (s *RoadmapService) GenerateEducationalTrail(roadmapItemID int64, itemTitle
 
 func (s *RoadmapService) GetEducationalTrailByRoadmapItemID(roadmapItemID int64) (*models.EducationalTrail, error) {
 	return s.educationalTrailRepo.GetByRoadmapItemID(roadmapItemID)
+}
+
+func (s *RoadmapService) DeleteEducationalTrail(roadmapItemID int64) error {
+	return s.educationalTrailRepo.DeleteByRoadmapItemID(roadmapItemID)
 }
 
 func (s *RoadmapService) UpdateTrailActivityCompleted(activityID int64, completed bool) error {

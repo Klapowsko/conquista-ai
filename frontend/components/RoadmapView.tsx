@@ -131,16 +131,40 @@ export default function RoadmapView({ roadmap }: RoadmapViewProps) {
         <div className="mt-6 border-t pt-6">
           <div className="flex items-center justify-between mb-4">
             <h5 className="text-lg font-semibold">🗺️ Trilha Educacional</h5>
-            <button
-              onClick={() => {
-                setEducationalTrail(null);
-                setEducationalRoadmap(null);
-              }}
-              className="text-sm text-gray-500 hover:text-gray-700 px-3 py-1 rounded hover:bg-gray-100"
-              title="Ocultar trilha educacional"
-            >
-              Ocultar
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={async () => {
+                  if (!confirm('Tem certeza que deseja deletar esta trilha educacional? Você poderá gerar uma nova trilha depois.')) {
+                    return;
+                  }
+                  try {
+                    // Encontrar o roadmap_item_id da trilha
+                    const roadmapItemId = educationalTrail.roadmap_item_id;
+                    await roadmapsAPI.deleteEducationalTrail(roadmapItemId);
+                    setEducationalTrail(null);
+                    setEducationalRoadmap(null);
+                    alert('Trilha educacional deletada com sucesso! Você pode gerar uma nova trilha agora.');
+                  } catch (error: any) {
+                    console.error('Erro ao deletar trilha:', error);
+                    alert('Erro ao deletar trilha educacional: ' + (error?.message || 'Erro desconhecido'));
+                  }
+                }}
+                className="text-sm text-red-600 hover:text-red-800 px-3 py-1 rounded hover:bg-red-50 border border-red-200 transition-colors"
+                title="Deletar trilha educacional"
+              >
+                🗑️ Deletar Trilha
+              </button>
+              <button
+                onClick={() => {
+                  setEducationalTrail(null);
+                  setEducationalRoadmap(null);
+                }}
+                className="text-sm text-gray-500 hover:text-gray-700 px-3 py-1 rounded hover:bg-gray-100"
+                title="Ocultar trilha educacional"
+              >
+                Ocultar
+              </button>
+            </div>
           </div>
           <EducationalTrailView trail={educationalTrail} />
         </div>

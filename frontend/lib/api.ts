@@ -117,6 +117,8 @@ export const roadmapsAPI = {
     }),
   getEducationalTrailByRoadmapItemId: (roadmapItemId: number): Promise<EducationalTrail> =>
     fetchAPI<EducationalTrail>(`/roadmap-items/${roadmapItemId}/educational-trail`),
+  deleteEducationalTrail: (roadmapItemId: number): Promise<void> =>
+    fetchAPI<void>(`/roadmap-items/${roadmapItemId}/educational-trail`, { method: 'DELETE' }),
   updateTrailActivity: (activityId: number, completed: boolean): Promise<void> =>
     fetchAPI<void>(`/trail-activities/${activityId}`, {
       method: 'PUT',

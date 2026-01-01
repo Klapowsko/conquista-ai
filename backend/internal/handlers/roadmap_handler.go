@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -200,4 +201,23 @@ func (h *RoadmapHandler) UpdateTrailActivity(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "atividade atualizada com sucesso"})
+}
+
+func (h *RoadmapHandler) DeleteEducationalTrail(c *gin.Context) {
+	roadmapItemID, err := strconv.ParseInt(c.Param("roadmap_item_id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID inválido"})
+		return
+	}
+
+	if err := h.service.DeleteEducationalTrail(roadmapItemID); err != nil {
+		if err.Error() == fmt.Sprintf("trilha educacional não encontrada para roadmap_item_id %d", roadmapItemID) {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "erro ao deletar trilha educacional"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "trilha educacional deletada com sucesso"})
 }

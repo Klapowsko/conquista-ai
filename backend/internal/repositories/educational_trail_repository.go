@@ -3,6 +3,7 @@ package repositories
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/conquista-ai/conquista-ai/internal/models"
@@ -235,6 +236,28 @@ func (r *EducationalTrailRepository) UpdateActivityCompleted(activityID int64, c
 	query := `UPDATE educational_trail_activities SET completed = $1, updated_at = $2 WHERE id = $3`
 	_, err := r.db.Exec(query, completed, time.Now(), activityID)
 	return err
+}
+
+// DeleteByRoadmapItemID deleta uma trilha educacional e todos os dados relacionados
+// O CASCADE no banco de dados garante que steps, activities, resources e chapters sejam deletados automaticamente
+func (r *EducationalTrailRepository) DeleteByRoadmapItemID(roadmapItemID int64) error {
+	query := `DELETE FROM educational_trails WHERE roadmap_item_id = $1`
+	result, err := r.db.Exec(query, roadmapItemID)
+	if err != nil {
+		return err
+	}
+	
+	// Verificar se alguma linha foi deletada
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	
+	if rowsAffected == 0 {
+		return fmt.Errorf("trilha educacional não encontrada para roadmap_item_id %d", roadmapItemID)
+	}
+	
+	return nil
 }
 
 // Helper para converter de spellbook.EducationalTrailResponse para models.EducationalTrail
