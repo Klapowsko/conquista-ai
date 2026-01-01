@@ -13,8 +13,9 @@ type KeyResult struct {
 }
 
 type CreateKeyResultRequest struct {
-	OKRID int64  `json:"okr_id" binding:"required"`
-	Title string `json:"title" binding:"required"`
+	OKRID                int64   `json:"okr_id" binding:"required"`
+	Title                string  `json:"title" binding:"required"`
+	ExpectedCompletionDate *string `json:"expected_completion_date,omitempty"`
 }
 
 type UpdateKeyResultRequest struct {

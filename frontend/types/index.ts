@@ -69,6 +69,7 @@ export interface UpdateOKRRequest {
 export interface CreateKeyResultRequest {
   okr_id: number;
   title: string;
+  expected_completion_date?: string;
 }
 
 export interface UpdateKeyResultRequest {

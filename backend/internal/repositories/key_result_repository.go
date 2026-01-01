@@ -16,14 +16,19 @@ func NewKeyResultRepository(db *sql.DB) *KeyResultRepository {
 }
 
 func (r *KeyResultRepository) Create(kr *models.KeyResult) error {
-	query := `INSERT INTO key_results (okr_id, title, completed, created_at, updated_at) 
-	          VALUES ($1, $2, $3, $4, $5) RETURNING id`
+	query := `INSERT INTO key_results (okr_id, title, completed, expected_completion_date, created_at, updated_at) 
+	          VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`
 
 	now := time.Now()
 	kr.CreatedAt = now
 	kr.UpdatedAt = now
 
-	err := r.db.QueryRow(query, kr.OKRID, kr.Title, kr.Completed, kr.CreatedAt, kr.UpdatedAt).Scan(&kr.ID)
+	var expectedCompletionDateSQL sql.NullTime
+	if kr.ExpectedCompletionDate != nil {
+		expectedCompletionDateSQL = sql.NullTime{Time: *kr.ExpectedCompletionDate, Valid: true}
+	}
+
+	err := r.db.QueryRow(query, kr.OKRID, kr.Title, kr.Completed, expectedCompletionDateSQL, kr.CreatedAt, kr.UpdatedAt).Scan(&kr.ID)
 	if err != nil {
 		return err
 	}
@@ -32,7 +37,7 @@ func (r *KeyResultRepository) Create(kr *models.KeyResult) error {
 }
 
 func (r *KeyResultRepository) GetByOKRID(okrID int64) ([]models.KeyResult, error) {
-	query := `SELECT id, okr_id, title, completed, created_at, updated_at 
+	query := `SELECT id, okr_id, title, completed, expected_completion_date, created_at, updated_at 
 	          FROM key_results WHERE okr_id = $1 ORDER BY created_at ASC`
 
 	rows, err := r.db.Query(query, okrID)
@@ -44,8 +49,12 @@ func (r *KeyResultRepository) GetByOKRID(okrID int64) ([]models.KeyResult, error
 	keyResults := make([]models.KeyResult, 0)
 	for rows.Next() {
 		var kr models.KeyResult
-		if err := rows.Scan(&kr.ID, &kr.OKRID, &kr.Title, &kr.Completed, &kr.CreatedAt, &kr.UpdatedAt); err != nil {
+		var expectedCompletionDate sql.NullTime
+		if err := rows.Scan(&kr.ID, &kr.OKRID, &kr.Title, &kr.Completed, &expectedCompletionDate, &kr.CreatedAt, &kr.UpdatedAt); err != nil {
 			return []models.KeyResult{}, err
+		}
+		if expectedCompletionDate.Valid {
+			kr.ExpectedCompletionDate = &expectedCompletionDate.Time
 		}
 		keyResults = append(keyResults, kr)
 	}
@@ -58,16 +67,21 @@ func (r *KeyResultRepository) GetByOKRID(okrID int64) ([]models.KeyResult, error
 }
 
 func (r *KeyResultRepository) GetByID(id int64) (*models.KeyResult, error) {
-	query := `SELECT id, okr_id, title, completed, created_at, updated_at 
+	query := `SELECT id, okr_id, title, completed, expected_completion_date, created_at, updated_at 
 	          FROM key_results WHERE id = $1`
 
 	var kr models.KeyResult
-	err := r.db.QueryRow(query, id).Scan(&kr.ID, &kr.OKRID, &kr.Title, &kr.Completed, &kr.CreatedAt, &kr.UpdatedAt)
+	var expectedCompletionDate sql.NullTime
+	err := r.db.QueryRow(query, id).Scan(&kr.ID, &kr.OKRID, &kr.Title, &kr.Completed, &expectedCompletionDate, &kr.CreatedAt, &kr.UpdatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
 		return nil, err
+	}
+
+	if expectedCompletionDate.Valid {
+		kr.ExpectedCompletionDate = &expectedCompletionDate.Time
 	}
 
 	return &kr, nil

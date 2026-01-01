@@ -46,6 +46,16 @@ func (h *KeyResultHandler) Create(c *gin.Context) {
 		Completed: false,
 	}
 
+	// Processar expected_completion_date se fornecido
+	if req.ExpectedCompletionDate != nil && *req.ExpectedCompletionDate != "" {
+		parsedDate, err := time.Parse("2006-01-02", *req.ExpectedCompletionDate)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "formato de data de conclusão inválido. Use YYYY-MM-DD"})
+			return
+		}
+		keyResult.ExpectedCompletionDate = &parsedDate
+	}
+
 	if err := h.repo.Create(keyResult); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "erro ao criar Key Result"})
 		return
@@ -74,7 +84,7 @@ func (h *KeyResultHandler) GetByOKRID(c *gin.Context) {
 		return
 	}
 
-	// Calcular expected_completion_date para cada Key Result
+	// Calcular expected_completion_date apenas para Key Results que não têm data definida
 	if okr != nil && okr.CompletionDate != nil && len(keyResults) > 0 {
 		now := time.Now()
 		completionDate := *okr.CompletionDate
@@ -82,21 +92,26 @@ func (h *KeyResultHandler) GetByOKRID(c *gin.Context) {
 		// Calcular dias restantes do OKR
 		daysRemaining := int(completionDate.Sub(now).Hours() / 24)
 		
-		if daysRemaining > 0 {
-			// Dividir o tempo pelo número de Key Results
-			daysPerKeyResult := daysRemaining / len(keyResults)
+		// Contar quantos Key Results não têm data definida
+		keyResultsWithoutDate := make([]int, 0)
+		for i := range keyResults {
+			if keyResults[i].ExpectedCompletionDate == nil {
+				keyResultsWithoutDate = append(keyResultsWithoutDate, i)
+			}
+		}
+		
+		if len(keyResultsWithoutDate) > 0 && daysRemaining > 0 {
+			// Dividir o tempo pelo número de Key Results sem data
+			daysPerKeyResult := daysRemaining / len(keyResultsWithoutDate)
 			
-			// Para cada Key Result, calcular sua data esperada de conclusão
-			// Distribuir progressivamente: cada Key Result termina após o anterior
-			// Exemplo: se temos 90 dias e 3 Key Results, cada um tem ~30 dias
-			// Key Result 1 termina em 30 dias, Key Result 2 em 60 dias, Key Result 3 em 90 dias
+			// Distribuir progressivamente apenas para os que não têm data
 			accumulatedDays := 0
-			for i := range keyResults {
+			for idx, i := range keyResultsWithoutDate {
 				// Calcular dias acumulados até este Key Result
 				daysForThisKR := daysPerKeyResult
 				
 				// Se houver resto na divisão, distribuir nos primeiros Key Results
-				if i < daysRemaining%len(keyResults) {
+				if idx < daysRemaining%len(keyResultsWithoutDate) {
 					daysForThisKR++
 				}
 				
@@ -106,9 +121,9 @@ func (h *KeyResultHandler) GetByOKRID(c *gin.Context) {
 				expectedDate := now.AddDate(0, 0, accumulatedDays)
 				keyResults[i].ExpectedCompletionDate = &expectedDate
 			}
-		} else {
-			// Se a data já passou, ainda calcular mas usar a data de conclusão do OKR
-			for i := range keyResults {
+		} else if len(keyResultsWithoutDate) > 0 {
+			// Se a data já passou, usar a data de conclusão do OKR
+			for _, i := range keyResultsWithoutDate {
 				keyResults[i].ExpectedCompletionDate = okr.CompletionDate
 			}
 		}

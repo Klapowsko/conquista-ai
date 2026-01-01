@@ -19,6 +19,7 @@ export default function OKRDetailPage() {
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newKeyResultTitle, setNewKeyResultTitle] = useState('');
+  const [newKeyResultCompletionDate, setNewKeyResultCompletionDate] = useState<string>('');
   const [creating, setCreating] = useState(false);
   const [generating, setGenerating] = useState(false);
 
@@ -57,11 +58,19 @@ export default function OKRDetailPage() {
 
     setCreating(true);
     try {
-      await keyResultsAPI.create({
+      const requestData: any = {
         okr_id: id,
         title: newKeyResultTitle.trim(),
-      });
+      };
+      
+      // Adicionar data de conclusão se fornecida
+      if (newKeyResultCompletionDate && newKeyResultCompletionDate.trim()) {
+        requestData.expected_completion_date = newKeyResultCompletionDate.trim();
+      }
+      
+      await keyResultsAPI.create(requestData);
       setNewKeyResultTitle('');
+      setNewKeyResultCompletionDate('');
       setShowCreateModal(false);
       loadData();
     } catch (error) {
@@ -245,30 +254,67 @@ export default function OKRDetailPage() {
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-xl shadow-xl p-6 max-w-md w-full border border-gray-100">
               <h3 className="text-xl font-bold text-gray-900 mb-4">Criar Key Result</h3>
-              <div className="mb-6">
-                <label htmlFor="keyResultTitle" className="block text-sm font-medium text-gray-700 mb-2">
-                  Título do Key Result
-                </label>
-                <input
-                  type="text"
-                  id="keyResultTitle"
-                  value={newKeyResultTitle}
-                  onChange={(e) => setNewKeyResultTitle(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  placeholder="Ex: Aprender os fundamentos de Go"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      handleCreateKeyResult();
-                    }
-                  }}
-                  autoFocus
-                />
+              <div className="mb-6 space-y-4">
+                <div>
+                  <label htmlFor="keyResultTitle" className="block text-sm font-medium text-gray-700 mb-2">
+                    Título do Key Result
+                  </label>
+                  <input
+                    type="text"
+                    id="keyResultTitle"
+                    value={newKeyResultTitle}
+                    onChange={(e) => setNewKeyResultTitle(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    placeholder="Ex: Aprender os fundamentos de Go"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleCreateKeyResult();
+                      }
+                    }}
+                    autoFocus
+                  />
+                </div>
+                <div>
+                  <label htmlFor="keyResultCompletionDate" className="block text-sm font-medium text-gray-700 mb-2">
+                    Data de Conclusão Esperada <span className="text-gray-400 font-normal">(opcional)</span>
+                  </label>
+                  <input
+                    type="date"
+                    id="keyResultCompletionDate"
+                    value={newKeyResultCompletionDate}
+                    onChange={(e) => {
+                      const selectedDate = e.target.value;
+                      // Validar que a data não é no passado
+                      const today = new Date();
+                      today.setHours(0, 0, 0, 0);
+                      const selected = new Date(selectedDate);
+                      
+                      if (selectedDate && selected < today) {
+                        alert('A data de conclusão não pode ser no passado');
+                        return;
+                      }
+                      setNewKeyResultCompletionDate(selectedDate);
+                    }}
+                    min={new Date().toISOString().split('T')[0]}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  />
+                  {newKeyResultCompletionDate && (
+                    <p className="mt-2 text-xs text-gray-500">
+                      Data selecionada: {new Date(newKeyResultCompletionDate).toLocaleDateString('pt-BR')}
+                    </p>
+                  )}
+                  <p className="mt-1 text-xs text-gray-400">
+                    Se não informada, a data será calculada automaticamente baseada no OKR.
+                  </p>
+                </div>
               </div>
               <div className="flex gap-2 justify-end">
                 <button
                   onClick={() => {
                     setShowCreateModal(false);
                     setNewKeyResultTitle('');
+                    setNewKeyResultCompletionDate('');
                   }}
                   className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
                 >
