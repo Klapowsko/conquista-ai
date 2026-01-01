@@ -32,6 +32,33 @@ export default function KeyResultCard({ keyResult, onUpdate }: KeyResultCardProp
   const handleGenerateRoadmap = async () => {
     setLoading(true);
     try {
+      // Primeiro tenta carregar o roadmap existente
+      try {
+        const existingRoadmap = await roadmapsAPI.getByKeyResultId(keyResult.id);
+        setRoadmap(existingRoadmap);
+        setShowRoadmap(true);
+        setLoading(false);
+        return;
+      } catch (error: any) {
+        // Se não existe (404), continua para gerar um novo
+        const errorStatus = error?.status;
+        const errorMessage = error?.message || String(error);
+        
+        if (errorStatus === 404 || 
+            errorMessage.includes('404') || 
+            errorMessage.includes('não encontrado') || 
+            errorMessage.includes('not found')) {
+          console.log('Roadmap não encontrado, gerando novo...');
+        } else {
+          // Se for outro erro, mostra e retorna
+          console.error('Erro ao buscar roadmap:', error);
+          alert('Erro ao buscar roadmap: ' + errorMessage);
+          setLoading(false);
+          return;
+        }
+      }
+      
+      // Gera um novo roadmap se não existir
       const data = await roadmapsAPI.generate(keyResult.id);
       setRoadmap(data);
       setShowRoadmap(true);
