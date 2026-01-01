@@ -12,26 +12,38 @@ import {
   UpdateKeyResultRequest,
 } from '@/types';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
+// @ts-ignore - process.env é disponibilizado pelo Next.js
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_URL}${endpoint}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options?.headers,
-    },
-  });
+  try {
+    const response = await fetch(`${API_URL}${endpoint}`, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options?.headers,
+      },
+    });
 
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Erro desconhecido' }));
-    const errorMessage = error.error || `HTTP error! status: ${response.status}`;
-    const apiError = new Error(errorMessage) as any;
-    apiError.status = response.status;
-    throw apiError;
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Erro desconhecido' }));
+      const errorMessage = error.error || `HTTP error! status: ${response.status}`;
+      const apiError = new Error(errorMessage) as any;
+      apiError.status = response.status;
+      throw apiError;
+    }
+
+    return response.json();
+  } catch (error: any) {
+    // Se for erro de conexão (network error), fornece mensagem mais clara
+    if (error.message?.includes('Failed to fetch') || error.message?.includes('NetworkError') || error.code === 'ECONNREFUSED') {
+      const connectionError = new Error(`Erro de conexão: Não foi possível conectar ao backend em ${API_URL}. Verifique se o servidor está rodando.`) as any;
+      connectionError.status = 0;
+      connectionError.isConnectionError = true;
+      throw connectionError;
+    }
+    throw error;
   }
-
-  return response.json();
 }
 
 // Categories
