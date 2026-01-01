@@ -119,9 +119,31 @@ func (r *RoadmapRepository) UpdateItem(itemID int64, completed bool) error {
 	return err
 }
 
+// DeleteByKeyResultID deleta um roadmap e todos os dados relacionados (categorias, itens, trilhas)
+// através de cascata do banco de dados
+func (r *RoadmapRepository) DeleteByKeyResultID(keyResultID int64) error {
+	query := `DELETE FROM roadmaps WHERE key_result_id = $1`
+	result, err := r.db.Exec(query, keyResultID)
+	if err != nil {
+		return err
+	}
+	
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	
+	if rowsAffected == 0 {
+		return sql.ErrNoRows
+	}
+	
+	return nil
+}
+
 // GetOKRByRoadmapItemID busca o OKR relacionado a um roadmap item e retorna também
-// o número total de Key Results do OKR e o número total de itens do roadmap
-func (r *RoadmapRepository) GetOKRByRoadmapItemID(roadmapItemID int64) (*models.OKR, int, int, error) {
+// o número total de Key Results do OKR, o número total de itens do roadmap,
+// e o Key Result relacionado com sua expected_completion_date
+func (r *RoadmapRepository) GetOKRByRoadmapItemID(roadmapItemID int64) (*models.OKR, *models.KeyResult, int, int, error) {
 	query := `
 		SELECT 
 			o.id, 
@@ -130,23 +152,34 @@ func (r *RoadmapRepository) GetOKRByRoadmapItemID(roadmapItemID int64) (*models.
 			o.completion_date, 
 			o.created_at, 
 			o.updated_at,
-			COUNT(DISTINCT kr.id) as total_key_results,
+			kr.id as key_result_id,
+			kr.okr_id,
+			kr.title as key_result_title,
+			kr.completed as key_result_completed,
+			kr.expected_completion_date,
+			kr.created_at as key_result_created_at,
+			kr.updated_at as key_result_updated_at,
+			COUNT(DISTINCT kr_all.id) as total_key_results,
 			COUNT(DISTINCT ri_all.id) as total_roadmap_items
 		FROM roadmap_items ri
 		INNER JOIN roadmap_categories rc ON ri.category_id = rc.id
 		INNER JOIN roadmaps r ON rc.roadmap_id = r.id
 		INNER JOIN key_results kr ON r.key_result_id = kr.id
 		INNER JOIN okrs o ON kr.okr_id = o.id
+		LEFT JOIN key_results kr_all ON kr_all.okr_id = o.id
 		LEFT JOIN roadmap_categories rc_all ON rc_all.roadmap_id = r.id
 		LEFT JOIN roadmap_items ri_all ON ri_all.category_id = rc_all.id
 		WHERE ri.id = $1
-		GROUP BY o.id, o.objective, o.category_id, o.completion_date, o.created_at, o.updated_at
+		GROUP BY o.id, o.objective, o.category_id, o.completion_date, o.created_at, o.updated_at,
+		         kr.id, kr.okr_id, kr.title, kr.completed, kr.expected_completion_date, kr.created_at, kr.updated_at
 	`
 
 	var okr models.OKR
+	var keyResult models.KeyResult
 	var totalKeyResults int
 	var totalRoadmapItems int
 	var completionDate sql.NullTime
+	var keyResultExpectedDate sql.NullTime
 
 	err := r.db.QueryRow(query, roadmapItemID).Scan(
 		&okr.ID,
@@ -155,19 +188,30 @@ func (r *RoadmapRepository) GetOKRByRoadmapItemID(roadmapItemID int64) (*models.
 		&completionDate,
 		&okr.CreatedAt,
 		&okr.UpdatedAt,
+		&keyResult.ID,
+		&keyResult.OKRID,
+		&keyResult.Title,
+		&keyResult.Completed,
+		&keyResultExpectedDate,
+		&keyResult.CreatedAt,
+		&keyResult.UpdatedAt,
 		&totalKeyResults,
 		&totalRoadmapItems,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, 0, 0, nil
+			return nil, nil, 0, 0, nil
 		}
-		return nil, 0, 0, err
+		return nil, nil, 0, 0, err
 	}
 
 	if completionDate.Valid {
 		okr.CompletionDate = &completionDate.Time
 	}
 
-	return &okr, totalKeyResults, totalRoadmapItems, nil
+	if keyResultExpectedDate.Valid {
+		keyResult.ExpectedCompletionDate = &keyResultExpectedDate.Time
+	}
+
+	return &okr, &keyResult, totalKeyResults, totalRoadmapItems, nil
 }

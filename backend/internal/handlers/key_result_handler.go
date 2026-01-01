@@ -54,6 +54,56 @@ func (h *KeyResultHandler) Create(c *gin.Context) {
 			return
 		}
 		keyResult.ExpectedCompletionDate = &parsedDate
+	} else {
+		// Se não foi fornecida data, calcular automaticamente baseado no OKR
+		if okr.CompletionDate != nil {
+			// Buscar todos os Key Results existentes do OKR
+			existingKeyResults, err := h.repo.GetByOKRID(req.OKRID)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "erro ao buscar Key Results existentes"})
+				return
+			}
+			
+			// Contar quantos Key Results não têm data definida (incluindo o que está sendo criado)
+			keyResultsWithoutDate := 0
+			for _, kr := range existingKeyResults {
+				if kr.ExpectedCompletionDate == nil {
+					keyResultsWithoutDate++
+				}
+			}
+			// Adicionar 1 para o Key Result que está sendo criado
+			keyResultsWithoutDate++
+			
+			now := time.Now()
+			completionDate := *okr.CompletionDate
+			daysRemaining := int(completionDate.Sub(now).Hours() / 24)
+			
+			if daysRemaining > 0 && keyResultsWithoutDate > 0 {
+				// Dividir o tempo pelo número de Key Results sem data
+				daysPerKeyResult := daysRemaining / keyResultsWithoutDate
+				
+				// Calcular a posição deste Key Result na sequência (último)
+				position := keyResultsWithoutDate - 1
+				
+				// Calcular dias acumulados até este Key Result
+				accumulatedDays := 0
+				for i := 0; i <= position; i++ {
+					daysForThisKR := daysPerKeyResult
+					// Se houver resto na divisão, distribuir nos primeiros Key Results
+					if i < daysRemaining%keyResultsWithoutDate {
+						daysForThisKR++
+					}
+					accumulatedDays += daysForThisKR
+				}
+				
+				// Calcular data esperada: hoje + dias acumulados até este Key Result
+				expectedDate := now.AddDate(0, 0, accumulatedDays)
+				keyResult.ExpectedCompletionDate = &expectedDate
+			} else if daysRemaining > 0 {
+				// Se a data já passou, usar a data de conclusão do OKR
+				keyResult.ExpectedCompletionDate = okr.CompletionDate
+			}
+		}
 	}
 
 	if err := h.repo.Create(keyResult); err != nil {

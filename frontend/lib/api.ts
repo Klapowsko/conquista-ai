@@ -93,6 +93,8 @@ export const roadmapsAPI = {
     fetchAPI<Roadmap>(`/key-results/${keyResultId}/roadmap`, { method: 'POST' }),
   getByKeyResultId: (keyResultId: number): Promise<Roadmap> =>
     fetchAPI<Roadmap>(`/key-results/${keyResultId}/roadmap`),
+  delete: (keyResultId: number): Promise<void> =>
+    fetchAPI<void>(`/key-results/${keyResultId}/roadmap`, { method: 'DELETE' }),
   updateItem: (itemId: number, completed: boolean): Promise<void> =>
     fetchAPI<void>(`/roadmap-items/${itemId}`, {
       method: 'PUT',

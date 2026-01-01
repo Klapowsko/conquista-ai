@@ -18,7 +18,7 @@ func NewRoadmapHandler(service *services.RoadmapService) *RoadmapHandler {
 }
 
 func (h *RoadmapHandler) GenerateRoadmap(c *gin.Context) {
-	keyResultID, err := strconv.ParseInt(c.Param("key_result_id"), 10, 64)
+	keyResultID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "ID inválido"})
 		return
@@ -34,7 +34,7 @@ func (h *RoadmapHandler) GenerateRoadmap(c *gin.Context) {
 }
 
 func (h *RoadmapHandler) GetByKeyResultID(c *gin.Context) {
-	keyResultID, err := strconv.ParseInt(c.Param("key_result_id"), 10, 64)
+	keyResultID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "ID inválido"})
 		return
@@ -220,4 +220,23 @@ func (h *RoadmapHandler) DeleteEducationalTrail(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "trilha educacional deletada com sucesso"})
+}
+
+func (h *RoadmapHandler) DeleteRoadmap(c *gin.Context) {
+	keyResultID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID inválido"})
+		return
+	}
+
+	if err := h.service.DeleteRoadmap(keyResultID); err != nil {
+		if err.Error() == fmt.Sprintf("roadmap não encontrado para key_result_id %d", keyResultID) {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "erro ao deletar roadmap"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "roadmap deletado com sucesso"})
 }

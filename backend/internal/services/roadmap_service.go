@@ -56,40 +56,56 @@ func (s *RoadmapService) GenerateRoadmap(keyResultID int64) (*models.Roadmap, er
 		return existing, nil
 	}
 
-	// Buscar OKR e calcular tempo disponível do Key Result
+	// Calcular tempo disponível do Key Result
 	var availableDays *int
-	okr, err := s.okrRepo.GetByID(kr.OKRID)
-	if err != nil {
-		return nil, fmt.Errorf("erro ao buscar OKR: %w", err)
+	now := time.Now()
+	
+	// Prioridade 1: Usar expected_completion_date do Key Result se disponível
+	if kr.ExpectedCompletionDate != nil {
+		expectedDate := *kr.ExpectedCompletionDate
+		daysRemaining := int(expectedDate.Sub(now).Hours() / 24)
+		
+		if daysRemaining > 0 {
+			// Aplicar limite mínimo de 3 dias para evitar roadmaps muito curtos
+			if daysRemaining < 3 {
+				daysRemaining = 3
+			}
+			availableDays = &daysRemaining
+		}
 	}
 	
-	if okr != nil && okr.CompletionDate != nil {
-		// Buscar todos os Key Results do OKR para contar
-		allKeyResults, err := s.keyResultRepo.GetByOKRID(okr.ID)
+	// Prioridade 2: Se não tiver expected_completion_date, calcular baseado no OKR
+	if availableDays == nil {
+		okr, err := s.okrRepo.GetByID(kr.OKRID)
 		if err != nil {
-			return nil, fmt.Errorf("erro ao buscar Key Results: %w", err)
+			return nil, fmt.Errorf("erro ao buscar OKR: %w", err)
 		}
 		
-		totalKeyResults := len(allKeyResults)
-		if totalKeyResults > 0 {
-			now := time.Now()
-			completionDate := *okr.CompletionDate
+		if okr != nil && okr.CompletionDate != nil {
+			// Buscar todos os Key Results do OKR para contar
+			allKeyResults, err := s.keyResultRepo.GetByOKRID(okr.ID)
+			if err != nil {
+				return nil, fmt.Errorf("erro ao buscar Key Results: %w", err)
+			}
 			
-			// Calcular dias restantes
-			daysRemaining := int(completionDate.Sub(now).Hours() / 24)
-			
-			if daysRemaining > 0 {
-				// Dividir o tempo pelo número de Key Results
-				calculatedDays := daysRemaining / totalKeyResults
+			totalKeyResults := len(allKeyResults)
+			if totalKeyResults > 0 {
+				completionDate := *okr.CompletionDate
 				
-				// Aplicar limites: mínimo 3 dias, máximo 30 dias
-				if calculatedDays < 3 {
-					calculatedDays = 3
-				} else if calculatedDays > 30 {
-					calculatedDays = 30
+				// Calcular dias restantes
+				daysRemaining := int(completionDate.Sub(now).Hours() / 24)
+				
+				if daysRemaining > 0 {
+					// Dividir o tempo pelo número de Key Results
+					calculatedDays := daysRemaining / totalKeyResults
+					
+					// Aplicar limite mínimo de 3 dias para evitar roadmaps muito curtos
+					if calculatedDays < 3 {
+						calculatedDays = 3
+					}
+					
+					availableDays = &calculatedDays
 				}
-				
-				availableDays = &calculatedDays
 			}
 		}
 	}
@@ -100,11 +116,28 @@ func (s *RoadmapService) GenerateRoadmap(keyResultID int64) (*models.Roadmap, er
 		availableDays = &defaultDays
 	}
 
+	// Log para debug
+	if kr.ExpectedCompletionDate != nil {
+		fmt.Printf("[DEBUG] GenerateRoadmap - KeyResultID: %d, ExpectedCompletionDate: %v, AvailableDays: %d\n", 
+			keyResultID, *kr.ExpectedCompletionDate, *availableDays)
+	} else {
+		fmt.Printf("[DEBUG] GenerateRoadmap - KeyResultID: %d, ExpectedCompletionDate: nil, AvailableDays: %d (calculado do OKR)\n", 
+			keyResultID, *availableDays)
+	}
+
 	// Gerar roadmap via Spellbook
 	roadmapResp, err := s.spellbookClient.GenerateRoadmap(kr.Title, availableDays)
 	if err != nil {
 		return nil, fmt.Errorf("erro ao gerar roadmap: %w", err)
 	}
+
+	// Contar itens gerados para debug
+	totalItemsGenerated := 0
+	for _, cat := range roadmapResp.Roadmap {
+		totalItemsGenerated += len(cat.Items)
+	}
+	fmt.Printf("[DEBUG] GenerateRoadmap - KeyResultID: %d, TotalItemsGenerated: %d, ExpectedMaxItems: %d\n", 
+		keyResultID, totalItemsGenerated, *availableDays)
 
 	// Converter resposta do Spellbook para modelo interno
 	roadmap := &models.Roadmap{
@@ -141,6 +174,19 @@ func (s *RoadmapService) GenerateRoadmap(keyResultID int64) (*models.Roadmap, er
 
 func (s *RoadmapService) GetRoadmapByKeyResultID(keyResultID int64) (*models.Roadmap, error) {
 	return s.roadmapRepo.GetByKeyResultID(keyResultID)
+}
+
+func (s *RoadmapService) DeleteRoadmap(keyResultID int64) error {
+	// Verificar se roadmap existe antes de deletar
+	existing, err := s.roadmapRepo.GetByKeyResultID(keyResultID)
+	if err != nil {
+		return fmt.Errorf("erro ao verificar roadmap existente: %w", err)
+	}
+	if existing == nil {
+		return fmt.Errorf("roadmap não encontrado para key_result_id %d", keyResultID)
+	}
+	
+	return s.roadmapRepo.DeleteByKeyResultID(keyResultID)
 }
 
 func (s *RoadmapService) UpdateRoadmapItem(itemID int64, completed bool) error {
@@ -264,15 +310,53 @@ func (s *RoadmapService) GenerateEducationalTrail(roadmapItemID int64, itemTitle
 		return existing, nil
 	}
 
-	// Buscar OKR e calcular tempo disponível
-	okr, totalKeyResults, totalRoadmapItems, err := s.roadmapRepo.GetOKRByRoadmapItemID(roadmapItemID)
+	// Buscar OKR, Key Result e calcular tempo disponível
+	okr, keyResult, totalKeyResults, totalRoadmapItems, err := s.roadmapRepo.GetOKRByRoadmapItemID(roadmapItemID)
 	if err != nil {
 		return nil, fmt.Errorf("erro ao buscar OKR: %w", err)
 	}
 
 	var availableDays *int
-	if okr != nil && okr.CompletionDate != nil && totalKeyResults > 0 {
-		now := time.Now()
+	now := time.Now()
+	
+	// Prioridade 1: Usar expected_completion_date do Key Result se disponível
+	if keyResult != nil && keyResult.ExpectedCompletionDate != nil {
+		expectedDate := *keyResult.ExpectedCompletionDate
+		daysRemaining := int(expectedDate.Sub(now).Hours() / 24)
+		
+		fmt.Printf("[DEBUG] GenerateEducationalTrail - RoadmapItemID: %d, KeyResultExpectedDate: %v, DaysRemaining: %d, TotalRoadmapItems: %d\n", 
+			roadmapItemID, expectedDate, daysRemaining, totalRoadmapItems)
+		
+		if daysRemaining > 0 && totalRoadmapItems > 0 {
+			// Dividir o tempo do Key Result diretamente pelo número total de itens do roadmap
+			// Na estrutura de grade curricular, todos os itens (aulas) devem ter conteúdo (trilhas)
+			calculatedDays := daysRemaining / totalRoadmapItems
+			
+			fmt.Printf("[DEBUG] GenerateEducationalTrail - CalculatedDays (before limits): %d (DaysRemaining: %d / TotalItems: %d)\n", 
+				calculatedDays, daysRemaining, totalRoadmapItems)
+			
+			// Aplicar limites: mínimo 3 dias, máximo 30 dias
+			if calculatedDays < 3 {
+				calculatedDays = 3
+			} else if calculatedDays > 30 {
+				calculatedDays = 30
+			}
+			
+			fmt.Printf("[DEBUG] GenerateEducationalTrail - FinalAvailableDays: %d\n", calculatedDays)
+			availableDays = &calculatedDays
+		} else if daysRemaining > 0 {
+			// Se não houver itens no roadmap, usar o tempo do Key Result diretamente
+			if daysRemaining < 3 {
+				daysRemaining = 3
+			} else if daysRemaining > 30 {
+				daysRemaining = 30
+			}
+			availableDays = &daysRemaining
+		}
+	}
+	
+	// Prioridade 2: Se não tiver expected_completion_date do Key Result, calcular baseado no OKR
+	if availableDays == nil && okr != nil && okr.CompletionDate != nil && totalKeyResults > 0 {
 		completionDate := *okr.CompletionDate
 		
 		// Calcular dias restantes do OKR
@@ -282,8 +366,10 @@ func (s *RoadmapService) GenerateEducationalTrail(roadmapItemID int64, itemTitle
 			// Primeiro dividir o tempo pelo número de Key Results (tempo do Key Result)
 			daysPerKeyResult := daysRemaining / totalKeyResults
 			
-			// Depois dividir pelo número de itens do roadmap (tempo por item)
+			// Depois dividir pelo número total de itens do roadmap
+			// Na estrutura de grade curricular, todos os itens (aulas) devem ter conteúdo (trilhas)
 			if totalRoadmapItems > 0 {
+				// Dividir o tempo do Key Result diretamente pelo número total de itens
 				calculatedDays := daysPerKeyResult / totalRoadmapItems
 				
 				// Aplicar limites: mínimo 3 dias, máximo 30 dias
@@ -306,9 +392,9 @@ func (s *RoadmapService) GenerateEducationalTrail(roadmapItemID int64, itemTitle
 		}
 	}
 	
-	// Se não calculou tempo ou completion_date é nulo/passado, usar padrão de 14 dias
+	// Se não calculou tempo ou completion_date é nulo/passado, usar padrão de 3 dias (mínimo)
 	if availableDays == nil {
-		defaultDays := 14
+		defaultDays := 3
 		availableDays = &defaultDays
 	}
 

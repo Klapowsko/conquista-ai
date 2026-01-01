@@ -85,6 +85,25 @@ export default function KeyResultCard({ keyResult, onUpdate }: KeyResultCardProp
     }
   };
 
+  const handleDeleteRoadmap = async () => {
+    if (!confirm('Tem certeza que deseja deletar este roadmap? Você poderá gerar um novo roadmap depois.')) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await roadmapsAPI.delete(keyResult.id);
+      setRoadmap(null);
+      setShowRoadmap(false);
+      alert('Roadmap deletado com sucesso! Você pode gerar um novo roadmap agora.');
+    } catch (error: any) {
+      console.error('Erro ao deletar roadmap:', error);
+      alert('Erro ao deletar roadmap: ' + (error?.message || 'Erro desconhecido'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleDelete = async () => {
     if (!confirm(`Tem certeza que deseja deletar o Key Result "${keyResult.title}"?`)) {
       return;
@@ -180,6 +199,15 @@ export default function KeyResultCard({ keyResult, onUpdate }: KeyResultCardProp
             className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium text-sm"
           >
             Ocultar Roadmap
+          </button>
+        )}
+        {roadmap && (
+          <button
+            onClick={handleDeleteRoadmap}
+            disabled={loading}
+            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium text-sm"
+          >
+            Deletar Roadmap
           </button>
         )}
         <button

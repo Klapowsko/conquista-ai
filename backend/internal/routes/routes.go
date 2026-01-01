@@ -46,14 +46,18 @@ func SetupRoutes(
 			okrs.POST("/generate-key-results", okrHandler.GenerateKeyResults)
 			okrs.GET("/key-results", keyResultHandler.GetByOKRID)
 		}
+		// Rotas específicas de Key Results com roadmap (devem vir antes das genéricas)
+		keyResults := api.Group("/key-results/:id")
+		{
+			keyResults.POST("/roadmap", roadmapHandler.GenerateRoadmap)
+			keyResults.GET("/roadmap", roadmapHandler.GetByKeyResultID)
+			keyResults.DELETE("/roadmap", roadmapHandler.DeleteRoadmap)
+		}
+		api.PUT("/roadmap-items/:item_id", roadmapHandler.UpdateItem)
+
 		api.POST("/key-results", keyResultHandler.Create)
 		api.PUT("/key-results/:id", keyResultHandler.Update)
 		api.DELETE("/key-results/:id", keyResultHandler.Delete)
-
-		// Roadmaps
-		api.POST("/key-results/:key_result_id/roadmap", roadmapHandler.GenerateRoadmap)
-		api.GET("/key-results/:key_result_id/roadmap", roadmapHandler.GetByKeyResultID)
-		api.PUT("/roadmap-items/:item_id", roadmapHandler.UpdateItem)
 
 		// Educational Roadmaps
 		api.POST("/educational-roadmap", roadmapHandler.GenerateEducationalRoadmap)
