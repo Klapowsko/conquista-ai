@@ -55,6 +55,8 @@ func SetupRoutes(
 		}
 		api.PUT("/roadmap-items/:item_id", roadmapHandler.UpdateItem)
 
+		// Key Results - rota para buscar todos (deve vir antes das rotas específicas)
+		api.GET("/key-results", keyResultHandler.GetAll)
 		api.POST("/key-results", keyResultHandler.Create)
 		api.PUT("/key-results/:id", keyResultHandler.Update)
 		api.DELETE("/key-results/:id", keyResultHandler.Delete)

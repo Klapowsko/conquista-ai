@@ -25,6 +25,11 @@ export interface KeyResult {
   updated_at: string;
 }
 
+export interface KeyResultWithOKR extends KeyResult {
+  okr_title: string;
+  okr_completion_date?: string;
+}
+
 export interface RoadmapCategory {
   id: number;
   roadmap_id: number;

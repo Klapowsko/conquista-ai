@@ -120,3 +120,70 @@ func (r *KeyResultRepository) CreateBatch(keyResults []models.KeyResult) error {
 
 	return nil
 }
+
+// KeyResultWithOKR representa um Key Result com informações do OKR
+type KeyResultWithOKR struct {
+	KeyResult          models.KeyResult
+	OKRTitle           string
+	OKRCompletionDate  *time.Time
+}
+
+func (r *KeyResultRepository) GetAllWithOKR() ([]KeyResultWithOKR, error) {
+	query := `SELECT 
+		kr.id, 
+		kr.okr_id, 
+		kr.title, 
+		kr.completed, 
+		kr.expected_completion_date, 
+		kr.created_at, 
+		kr.updated_at,
+		o.objective as okr_title,
+		o.completion_date as okr_completion_date
+	FROM key_results kr
+	INNER JOIN okrs o ON kr.okr_id = o.id
+	ORDER BY kr.expected_completion_date ASC NULLS LAST, kr.created_at ASC`
+
+	rows, err := r.db.Query(query)
+	if err != nil {
+		return []KeyResultWithOKR{}, err
+	}
+	defer rows.Close()
+
+	keyResults := make([]KeyResultWithOKR, 0)
+	for rows.Next() {
+		var krw KeyResultWithOKR
+		var expectedCompletionDate sql.NullTime
+		var okrCompletionDate sql.NullTime
+
+		err := rows.Scan(
+			&krw.KeyResult.ID,
+			&krw.KeyResult.OKRID,
+			&krw.KeyResult.Title,
+			&krw.KeyResult.Completed,
+			&expectedCompletionDate,
+			&krw.KeyResult.CreatedAt,
+			&krw.KeyResult.UpdatedAt,
+			&krw.OKRTitle,
+			&okrCompletionDate,
+		)
+		if err != nil {
+			return []KeyResultWithOKR{}, err
+		}
+
+		if expectedCompletionDate.Valid {
+			krw.KeyResult.ExpectedCompletionDate = &expectedCompletionDate.Time
+		}
+
+		if okrCompletionDate.Valid {
+			krw.OKRCompletionDate = &okrCompletionDate.Time
+		}
+
+		keyResults = append(keyResults, krw)
+	}
+
+	if err := rows.Err(); err != nil {
+		return []KeyResultWithOKR{}, err
+	}
+
+	return keyResults, nil
+}

@@ -2,6 +2,7 @@ import {
   Category,
   OKR,
   KeyResult,
+  KeyResultWithOKR,
   Roadmap,
   EducationalRoadmap,
   EducationalTrail,
@@ -77,6 +78,8 @@ export const okrsAPI = {
 
 // Key Results
 export const keyResultsAPI = {
+  getAll: (): Promise<KeyResultWithOKR[]> =>
+    fetchAPI<KeyResultWithOKR[]>('/key-results'),
   getByOKRId: (okrId: number): Promise<KeyResult[]> =>
     fetchAPI<KeyResult[]>(`/okrs/${okrId}/key-results`),
   create: (data: CreateKeyResultRequest): Promise<KeyResult> =>

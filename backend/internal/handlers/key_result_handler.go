@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -230,5 +231,54 @@ func (h *KeyResultHandler) Delete(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Key Result deletado com sucesso"})
+}
+
+// GetAll retorna todos os Key Results com informações do OKR, ordenados por data de expiração
+func (h *KeyResultHandler) GetAll(c *gin.Context) {
+	keyResultsWithOKR, err := h.repo.GetAllWithOKR()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("erro ao buscar Key Results: %v", err)})
+		return
+	}
+
+	// Converter para formato de resposta JSON
+	type KeyResultResponse struct {
+		ID                   int64      `json:"id"`
+		OKRID                int64      `json:"okr_id"`
+		Title                string     `json:"title"`
+		Completed            bool       `json:"completed"`
+		ExpectedCompletionDate *string   `json:"expected_completion_date,omitempty"`
+		CreatedAt            string     `json:"created_at"`
+		UpdatedAt            string     `json:"updated_at"`
+		OKRTitle             string     `json:"okr_title"`
+		OKRCompletionDate    *string    `json:"okr_completion_date,omitempty"`
+	}
+
+	response := make([]KeyResultResponse, 0, len(keyResultsWithOKR))
+	for _, krw := range keyResultsWithOKR {
+		kr := KeyResultResponse{
+			ID:        krw.KeyResult.ID,
+			OKRID:     krw.KeyResult.OKRID,
+			Title:     krw.KeyResult.Title,
+			Completed: krw.KeyResult.Completed,
+			CreatedAt: krw.KeyResult.CreatedAt.Format(time.RFC3339),
+			UpdatedAt: krw.KeyResult.UpdatedAt.Format(time.RFC3339),
+			OKRTitle:  krw.OKRTitle,
+		}
+
+		if krw.KeyResult.ExpectedCompletionDate != nil {
+			dateStr := krw.KeyResult.ExpectedCompletionDate.Format("2006-01-02")
+			kr.ExpectedCompletionDate = &dateStr
+		}
+
+		if krw.OKRCompletionDate != nil {
+			dateStr := krw.OKRCompletionDate.Format("2006-01-02")
+			kr.OKRCompletionDate = &dateStr
+		}
+
+		response = append(response, kr)
+	}
+
+	c.JSON(http.StatusOK, response)
 }
 
