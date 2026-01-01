@@ -47,7 +47,7 @@ func NewApp() (*App, error) {
 
 	// Serviços
 	okrService := services.NewOKRService(okrRepo, keyResultRepo, categoryRepo, spellbookClient)
-	roadmapService := services.NewRoadmapService(roadmapRepo, educationalRoadmapRepo, educationalTrailRepo, keyResultRepo, spellbookClient)
+	roadmapService := services.NewRoadmapService(roadmapRepo, educationalRoadmapRepo, educationalTrailRepo, keyResultRepo, okrRepo, spellbookClient)
 
 	// Handlers
 	categoryHandler := handlers.NewCategoryHandler(categoryRepo)

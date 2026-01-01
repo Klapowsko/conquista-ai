@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/conquista-ai/conquista-ai/internal/models"
 	"github.com/conquista-ai/conquista-ai/internal/repositories"
@@ -14,6 +15,7 @@ type RoadmapService struct {
 	educationalRoadmapRepo   *repositories.EducationalRoadmapRepository
 	educationalTrailRepo     *repositories.EducationalTrailRepository
 	keyResultRepo            *repositories.KeyResultRepository
+	okrRepo                  *repositories.OKRRepository
 	spellbookClient          *spellbook.Client
 }
 
@@ -22,6 +24,7 @@ func NewRoadmapService(
 	educationalRoadmapRepo *repositories.EducationalRoadmapRepository,
 	educationalTrailRepo *repositories.EducationalTrailRepository,
 	keyResultRepo *repositories.KeyResultRepository,
+	okrRepo *repositories.OKRRepository,
 	spellbookClient *spellbook.Client,
 ) *RoadmapService {
 	return &RoadmapService{
@@ -29,6 +32,7 @@ func NewRoadmapService(
 		educationalRoadmapRepo:  educationalRoadmapRepo,
 		educationalTrailRepo:    educationalTrailRepo,
 		keyResultRepo:          keyResultRepo,
+		okrRepo:                okrRepo,
 		spellbookClient:         spellbookClient,
 	}
 }
@@ -52,8 +56,52 @@ func (s *RoadmapService) GenerateRoadmap(keyResultID int64) (*models.Roadmap, er
 		return existing, nil
 	}
 
+	// Buscar OKR e calcular tempo disponível do Key Result
+	var availableDays *int
+	okr, err := s.okrRepo.GetByID(kr.OKRID)
+	if err != nil {
+		return nil, fmt.Errorf("erro ao buscar OKR: %w", err)
+	}
+	
+	if okr != nil && okr.CompletionDate != nil {
+		// Buscar todos os Key Results do OKR para contar
+		allKeyResults, err := s.keyResultRepo.GetByOKRID(okr.ID)
+		if err != nil {
+			return nil, fmt.Errorf("erro ao buscar Key Results: %w", err)
+		}
+		
+		totalKeyResults := len(allKeyResults)
+		if totalKeyResults > 0 {
+			now := time.Now()
+			completionDate := *okr.CompletionDate
+			
+			// Calcular dias restantes
+			daysRemaining := int(completionDate.Sub(now).Hours() / 24)
+			
+			if daysRemaining > 0 {
+				// Dividir o tempo pelo número de Key Results
+				calculatedDays := daysRemaining / totalKeyResults
+				
+				// Aplicar limites: mínimo 3 dias, máximo 30 dias
+				if calculatedDays < 3 {
+					calculatedDays = 3
+				} else if calculatedDays > 30 {
+					calculatedDays = 30
+				}
+				
+				availableDays = &calculatedDays
+			}
+		}
+	}
+	
+	// Se não calculou tempo ou completion_date é nulo/passado, usar padrão de 30 dias para roadmap
+	if availableDays == nil {
+		defaultDays := 30
+		availableDays = &defaultDays
+	}
+
 	// Gerar roadmap via Spellbook
-	roadmapResp, err := s.spellbookClient.GenerateRoadmap(kr.Title)
+	roadmapResp, err := s.spellbookClient.GenerateRoadmap(kr.Title, availableDays)
 	if err != nil {
 		return nil, fmt.Errorf("erro ao gerar roadmap: %w", err)
 	}
@@ -216,8 +264,56 @@ func (s *RoadmapService) GenerateEducationalTrail(roadmapItemID int64, itemTitle
 		return existing, nil
 	}
 
+	// Buscar OKR e calcular tempo disponível
+	okr, totalKeyResults, totalRoadmapItems, err := s.roadmapRepo.GetOKRByRoadmapItemID(roadmapItemID)
+	if err != nil {
+		return nil, fmt.Errorf("erro ao buscar OKR: %w", err)
+	}
+
+	var availableDays *int
+	if okr != nil && okr.CompletionDate != nil && totalKeyResults > 0 {
+		now := time.Now()
+		completionDate := *okr.CompletionDate
+		
+		// Calcular dias restantes do OKR
+		daysRemaining := int(completionDate.Sub(now).Hours() / 24)
+		
+		if daysRemaining > 0 {
+			// Primeiro dividir o tempo pelo número de Key Results (tempo do Key Result)
+			daysPerKeyResult := daysRemaining / totalKeyResults
+			
+			// Depois dividir pelo número de itens do roadmap (tempo por item)
+			if totalRoadmapItems > 0 {
+				calculatedDays := daysPerKeyResult / totalRoadmapItems
+				
+				// Aplicar limites: mínimo 3 dias, máximo 30 dias
+				if calculatedDays < 3 {
+					calculatedDays = 3
+				} else if calculatedDays > 30 {
+					calculatedDays = 30
+				}
+				
+				availableDays = &calculatedDays
+			} else {
+				// Se não houver itens no roadmap, usar o tempo do Key Result
+				if daysPerKeyResult < 3 {
+					daysPerKeyResult = 3
+				} else if daysPerKeyResult > 30 {
+					daysPerKeyResult = 30
+				}
+				availableDays = &daysPerKeyResult
+			}
+		}
+	}
+	
+	// Se não calculou tempo ou completion_date é nulo/passado, usar padrão de 14 dias
+	if availableDays == nil {
+		defaultDays := 14
+		availableDays = &defaultDays
+	}
+
 	// Gerar trilha educacional via Spellbook
-	trailResp, err := s.spellbookClient.GenerateEducationalTrail(itemTitle)
+	trailResp, err := s.spellbookClient.GenerateEducationalTrail(itemTitle, availableDays)
 	if err != nil {
 		return nil, fmt.Errorf("erro ao gerar trilha educacional: %w", err)
 	}

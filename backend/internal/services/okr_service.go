@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/conquista-ai/conquista-ai/internal/models"
 	"github.com/conquista-ai/conquista-ai/internal/repositories"
@@ -44,6 +45,19 @@ func (s *OKRService) CreateOKR(req models.CreateOKRRequest) (*models.OKR, error)
 		CategoryID: req.CategoryID,
 	}
 
+	// Processar completion_date
+	if req.CompletionDate != nil && *req.CompletionDate != "" {
+		completionDate, err := time.Parse("2006-01-02", *req.CompletionDate)
+		if err != nil {
+			return nil, fmt.Errorf("data de conclusão inválida: %w", err)
+		}
+		okr.CompletionDate = &completionDate
+	} else {
+		// Padrão: 3 meses a partir de hoje
+		defaultDate := time.Now().AddDate(0, 3, 0)
+		okr.CompletionDate = &defaultDate
+	}
+
 	if err := s.okrRepo.Create(okr); err != nil {
 		return nil, fmt.Errorf("erro ao criar OKR: %w", err)
 	}
@@ -51,9 +65,9 @@ func (s *OKRService) CreateOKR(req models.CreateOKRRequest) (*models.OKR, error)
 	return okr, nil
 }
 
-func (s *OKRService) generateKeyResults(okrID int64, objective string) error {
+func (s *OKRService) generateKeyResults(okrID int64, objective string, completionDate *time.Time) error {
 	// Usar o endpoint /key-results do Spellbook para gerar Key Results
-	keyResultsResp, err := s.spellbookClient.GenerateKeyResults(objective, 5)
+	keyResultsResp, err := s.spellbookClient.GenerateKeyResults(objective, 5, completionDate)
 	if err != nil {
 		return fmt.Errorf("erro ao gerar Key Results: %w", err)
 	}
@@ -98,6 +112,18 @@ func (s *OKRService) UpdateOKR(id int64, req models.UpdateOKRRequest) (*models.O
 	okr.Objective = req.Objective
 	okr.CategoryID = req.CategoryID
 
+	// Processar completion_date
+	if req.CompletionDate != nil && *req.CompletionDate != "" {
+		completionDate, err := time.Parse("2006-01-02", *req.CompletionDate)
+		if err != nil {
+			return nil, fmt.Errorf("data de conclusão inválida: %w", err)
+		}
+		okr.CompletionDate = &completionDate
+	} else if req.CompletionDate != nil && *req.CompletionDate == "" {
+		// Se enviado como string vazia, remover a data
+		okr.CompletionDate = nil
+	}
+
 	if err := s.okrRepo.Update(okr); err != nil {
 		return nil, fmt.Errorf("erro ao atualizar OKR: %w", err)
 	}
@@ -118,5 +144,5 @@ func (s *OKRService) GenerateKeyResults(okrID int64) error {
 		return fmt.Errorf("OKR não encontrado")
 	}
 
-	return s.generateKeyResults(okrID, okr.Objective)
+	return s.generateKeyResults(okrID, okr.Objective, okr.CompletionDate)
 }

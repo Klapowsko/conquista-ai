@@ -12,6 +12,15 @@ export default function NewOKRPage() {
   const [objective, setObjective] = useState('');
   const [categoryId, setCategoryId] = useState<number | ''>('');
   const [loading, setLoading] = useState(false);
+  
+  // Calcular data padrão: 3 meses a partir de hoje
+  const getDefaultCompletionDate = () => {
+    const date = new Date();
+    date.setMonth(date.getMonth() + 3);
+    return date.toISOString().split('T')[0];
+  };
+  
+  const [completionDate, setCompletionDate] = useState<string>(getDefaultCompletionDate());
 
   useEffect(() => {
     loadCategories();
@@ -41,6 +50,7 @@ export default function NewOKRPage() {
       const okr = await okrsAPI.create({
         objective,
         category_id: categoryId as number,
+        completion_date: completionDate,
       });
       router.push(`/okrs/${okr.id}`);
     } catch (error) {
@@ -80,7 +90,7 @@ export default function NewOKRPage() {
               />
             </div>
 
-            <div className="mb-6">
+            <div className="mb-4">
               <div className="flex items-center gap-2 mb-2">
                 <label htmlFor="category" className="block text-sm font-medium text-gray-700">
                   Categoria
@@ -115,6 +125,23 @@ export default function NewOKRPage() {
                   Passe o mouse sobre o ícone ℹ️ para ver as subcategorias desta categoria
                 </p>
               )}
+            </div>
+
+            <div className="mb-6">
+              <label htmlFor="completionDate" className="block text-sm font-medium text-gray-700 mb-2">
+                Data de Conclusão
+              </label>
+              <input
+                type="date"
+                id="completionDate"
+                value={completionDate}
+                onChange={(e) => setCompletionDate(e.target.value)}
+                min={new Date().toISOString().split('T')[0]}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              <p className="mt-2 text-xs text-gray-500">
+                Data prevista para conclusão do OKR. Padrão: 3 meses a partir de hoje.
+              </p>
             </div>
 
             <div className="flex gap-4">

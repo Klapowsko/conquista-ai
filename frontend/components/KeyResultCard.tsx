@@ -5,6 +5,7 @@ import { keyResultsAPI, roadmapsAPI } from '@/lib/api';
 import { useState } from 'react';
 import RoadmapView from './RoadmapView';
 import StatusBadge from './StatusBadge';
+import { differenceInDays } from 'date-fns';
 
 interface KeyResultCardProps {
   keyResult: KeyResult;
@@ -116,10 +117,39 @@ export default function KeyResultCard({ keyResult, onUpdate }: KeyResultCardProp
               <h4 className={`text-lg font-semibold mb-2 ${keyResult.completed ? 'line-through text-gray-500' : 'text-gray-900'}`}>
                 {keyResult.title}
               </h4>
-              <StatusBadge 
-                status={keyResult.completed ? 'complete' : 'in-progress'} 
-                size="sm"
-              />
+              <div className="flex items-center gap-2 flex-wrap">
+                <StatusBadge 
+                  status={keyResult.completed ? 'complete' : 'in-progress'} 
+                  size="sm"
+                />
+                {keyResult.expected_completion_date && (
+                  (() => {
+                    const expectedDate = new Date(keyResult.expected_completion_date);
+                    const today = new Date();
+                    const daysRemaining = differenceInDays(expectedDate, today);
+                    
+                    let dateStatusClass = '';
+                    let statusText = '';
+                    
+                    if (daysRemaining < 0) {
+                      dateStatusClass = 'bg-red-100 text-red-700';
+                      statusText = `Atrasado em ${Math.abs(daysRemaining)} dias`;
+                    } else if (daysRemaining <= 30) {
+                      dateStatusClass = 'bg-amber-100 text-amber-700';
+                      statusText = daysRemaining === 0 ? 'Último dia!' : `Faltam ${daysRemaining} dias`;
+                    } else {
+                      dateStatusClass = 'bg-green-100 text-green-700';
+                      statusText = `Faltam ${daysRemaining} dias`;
+                    }
+                    
+                    return (
+                      <span className={`inline-block px-3 py-1 text-xs font-medium rounded-full ${dateStatusClass}`}>
+                        Prazo: {expectedDate.toLocaleDateString('pt-BR')} ({statusText})
+                      </span>
+                    );
+                  })()
+                )}
+              </div>
             </div>
           </div>
         </div>

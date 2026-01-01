@@ -42,8 +42,9 @@ type TopicsResponse struct {
 // ============================================================================
 
 type KeyResultsRequest struct {
-	Objective string `json:"objective"`
-	Count     int    `json:"count"`
+	Objective      string  `json:"objective"`
+	Count          int     `json:"count"`
+	CompletionDate *string `json:"completion_date,omitempty"`
 }
 
 type KeyResultsResponse struct {
@@ -56,7 +57,8 @@ type KeyResultsResponse struct {
 // ============================================================================
 
 type RoadmapRequest struct {
-	Topic string `json:"topic"`
+	Topic        string `json:"topic"`
+	AvailableDays *int  `json:"available_days,omitempty"`
 }
 
 type RoadmapResponse struct {
@@ -139,10 +141,17 @@ func (c *Client) GenerateTopics(subject string, count int) (*TopicsResponse, err
 	return &topicsResp, nil
 }
 
-func (c *Client) GenerateKeyResults(objective string, count int) (*KeyResultsResponse, error) {
+func (c *Client) GenerateKeyResults(objective string, count int, completionDate *time.Time) (*KeyResultsResponse, error) {
+	var completionDateStr *string
+	if completionDate != nil {
+		formatted := completionDate.Format("2006-01-02")
+		completionDateStr = &formatted
+	}
+	
 	reqBody := KeyResultsRequest{
-		Objective: objective,
-		Count:     count,
+		Objective:      objective,
+		Count:          count,
+		CompletionDate: completionDateStr,
 	}
 
 	jsonData, err := json.Marshal(reqBody)
@@ -177,9 +186,10 @@ func (c *Client) GenerateKeyResults(objective string, count int) (*KeyResultsRes
 	return &keyResultsResp, nil
 }
 
-func (c *Client) GenerateRoadmap(topic string) (*RoadmapResponse, error) {
+func (c *Client) GenerateRoadmap(topic string, availableDays *int) (*RoadmapResponse, error) {
 	reqBody := RoadmapRequest{
-		Topic: topic,
+		Topic:        topic,
+		AvailableDays: availableDays,
 	}
 
 	jsonData, err := json.Marshal(reqBody)
@@ -262,7 +272,8 @@ func (c *Client) GenerateEducationalRoadmap(topic string) (*EducationalRoadmapRe
 // ============================================================================
 
 type EducationalTrailRequest struct {
-	Topic string `json:"topic"`
+	Topic        string `json:"topic"`
+	AvailableDays *int  `json:"available_days,omitempty"`
 }
 
 type TrailActivity struct {
@@ -301,9 +312,10 @@ type EducationalTrailResponse struct {
 }
 
 // GenerateEducationalTrail gera uma trilha educacional estruturada em dias/etapas
-func (c *Client) GenerateEducationalTrail(topic string) (*EducationalTrailResponse, error) {
+func (c *Client) GenerateEducationalTrail(topic string, availableDays *int) (*EducationalTrailResponse, error) {
 	reqBody := EducationalTrailRequest{
-		Topic: topic,
+		Topic:        topic,
+		AvailableDays: availableDays,
 	}
 
 	jsonData, err := json.Marshal(reqBody)

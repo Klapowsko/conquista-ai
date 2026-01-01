@@ -16,14 +16,14 @@ func NewOKRRepository(db *sql.DB) *OKRRepository {
 }
 
 func (r *OKRRepository) Create(okr *models.OKR) error {
-	query := `INSERT INTO okrs (objective, category_id, created_at, updated_at) 
-	          VALUES ($1, $2, $3, $4) RETURNING id`
+	query := `INSERT INTO okrs (objective, category_id, completion_date, created_at, updated_at) 
+	          VALUES ($1, $2, $3, $4, $5) RETURNING id`
 
 	now := time.Now()
 	okr.CreatedAt = now
 	okr.UpdatedAt = now
 
-	err := r.db.QueryRow(query, okr.Objective, okr.CategoryID, okr.CreatedAt, okr.UpdatedAt).Scan(&okr.ID)
+	err := r.db.QueryRow(query, okr.Objective, okr.CategoryID, okr.CompletionDate, okr.CreatedAt, okr.UpdatedAt).Scan(&okr.ID)
 	if err != nil {
 		return err
 	}
@@ -32,7 +32,7 @@ func (r *OKRRepository) Create(okr *models.OKR) error {
 }
 
 func (r *OKRRepository) GetAll() ([]models.OKR, error) {
-	query := `SELECT o.id, o.objective, o.category_id, o.created_at, o.updated_at,
+	query := `SELECT o.id, o.objective, o.category_id, o.completion_date, o.created_at, o.updated_at,
 	                 c.id, c.name, c.created_at, c.updated_at
 	          FROM okrs o
 	          LEFT JOIN categories c ON o.category_id = c.id
@@ -48,9 +48,13 @@ func (r *OKRRepository) GetAll() ([]models.OKR, error) {
 	for rows.Next() {
 		var o models.OKR
 		var c models.Category
-		if err := rows.Scan(&o.ID, &o.Objective, &o.CategoryID, &o.CreatedAt, &o.UpdatedAt,
+		var completionDate sql.NullTime
+		if err := rows.Scan(&o.ID, &o.Objective, &o.CategoryID, &completionDate, &o.CreatedAt, &o.UpdatedAt,
 			&c.ID, &c.Name, &c.CreatedAt, &c.UpdatedAt); err != nil {
 			return []models.OKR{}, err
+		}
+		if completionDate.Valid {
+			o.CompletionDate = &completionDate.Time
 		}
 		o.Category = &c
 		okrs = append(okrs, o)
@@ -64,7 +68,7 @@ func (r *OKRRepository) GetAll() ([]models.OKR, error) {
 }
 
 func (r *OKRRepository) GetByID(id int64) (*models.OKR, error) {
-	query := `SELECT o.id, o.objective, o.category_id, o.created_at, o.updated_at,
+	query := `SELECT o.id, o.objective, o.category_id, o.completion_date, o.created_at, o.updated_at,
 	                 c.id, c.name, c.created_at, c.updated_at
 	          FROM okrs o
 	          LEFT JOIN categories c ON o.category_id = c.id
@@ -72,7 +76,8 @@ func (r *OKRRepository) GetByID(id int64) (*models.OKR, error) {
 
 	var o models.OKR
 	var c models.Category
-	err := r.db.QueryRow(query, id).Scan(&o.ID, &o.Objective, &o.CategoryID, &o.CreatedAt, &o.UpdatedAt,
+	var completionDate sql.NullTime
+	err := r.db.QueryRow(query, id).Scan(&o.ID, &o.Objective, &o.CategoryID, &completionDate, &o.CreatedAt, &o.UpdatedAt,
 		&c.ID, &c.Name, &c.CreatedAt, &c.UpdatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -80,13 +85,15 @@ func (r *OKRRepository) GetByID(id int64) (*models.OKR, error) {
 		}
 		return nil, err
 	}
-
+	if completionDate.Valid {
+		o.CompletionDate = &completionDate.Time
+	}
 	o.Category = &c
 	return &o, nil
 }
 
 func (r *OKRRepository) GetByCategoryID(categoryID int64) ([]models.OKR, error) {
-	query := `SELECT o.id, o.objective, o.category_id, o.created_at, o.updated_at,
+	query := `SELECT o.id, o.objective, o.category_id, o.completion_date, o.created_at, o.updated_at,
 	                 c.id, c.name, c.created_at, c.updated_at
 	          FROM okrs o
 	          LEFT JOIN categories c ON o.category_id = c.id
@@ -103,9 +110,13 @@ func (r *OKRRepository) GetByCategoryID(categoryID int64) ([]models.OKR, error) 
 	for rows.Next() {
 		var o models.OKR
 		var c models.Category
-		if err := rows.Scan(&o.ID, &o.Objective, &o.CategoryID, &o.CreatedAt, &o.UpdatedAt,
+		var completionDate sql.NullTime
+		if err := rows.Scan(&o.ID, &o.Objective, &o.CategoryID, &completionDate, &o.CreatedAt, &o.UpdatedAt,
 			&c.ID, &c.Name, &c.CreatedAt, &c.UpdatedAt); err != nil {
 			return []models.OKR{}, err
+		}
+		if completionDate.Valid {
+			o.CompletionDate = &completionDate.Time
 		}
 		o.Category = &c
 		okrs = append(okrs, o)
@@ -119,10 +130,10 @@ func (r *OKRRepository) GetByCategoryID(categoryID int64) ([]models.OKR, error) 
 }
 
 func (r *OKRRepository) Update(okr *models.OKR) error {
-	query := `UPDATE okrs SET objective = $1, category_id = $2, updated_at = $3 WHERE id = $4`
+	query := `UPDATE okrs SET objective = $1, category_id = $2, completion_date = $3, updated_at = $4 WHERE id = $5`
 
 	okr.UpdatedAt = time.Now()
-	_, err := r.db.Exec(query, okr.Objective, okr.CategoryID, okr.UpdatedAt, okr.ID)
+	_, err := r.db.Exec(query, okr.Objective, okr.CategoryID, okr.CompletionDate, okr.UpdatedAt, okr.ID)
 	return err
 }
 

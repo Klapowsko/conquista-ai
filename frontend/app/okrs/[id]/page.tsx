@@ -122,7 +122,7 @@ export default function OKRDetailPage() {
           <div className="flex items-start justify-between mb-6">
             <div className="flex-1">
               <h1 className="text-3xl font-bold text-gray-900 mb-3">{okr.objective}</h1>
-              <div className="flex items-center gap-3 flex-wrap">
+              <div className="flex items-center gap-3 flex-wrap mb-3">
                 {okr.category && (
                   <CategoryTooltip categoryName={okr.category.name} position="bottom">
                     <span className="inline-block px-3 py-1 bg-blue-50 text-blue-700 text-sm font-medium rounded-full border border-blue-200 cursor-help hover:bg-blue-100 transition-colors">
@@ -132,6 +132,35 @@ export default function OKRDetailPage() {
                 )}
                 <StatusBadge status={status} />
               </div>
+              {okr.completion_date && (() => {
+                const completionDate = new Date(okr.completion_date);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const daysRemaining = Math.ceil((completionDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                const isOverdue = daysRemaining < 0;
+                const isNearDeadline = daysRemaining >= 0 && daysRemaining <= 30;
+                
+                return (
+                  <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${
+                    isOverdue 
+                      ? 'bg-red-50 text-red-700 border border-red-200' 
+                      : isNearDeadline 
+                        ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                        : 'bg-green-50 text-green-700 border border-green-200'
+                  }`}>
+                    <span>📅</span>
+                    <span>
+                      {isOverdue 
+                        ? `Prazo vencido há ${Math.abs(daysRemaining)} dia${Math.abs(daysRemaining) !== 1 ? 's' : ''}`
+                        : `${daysRemaining} dia${daysRemaining !== 1 ? 's' : ''} restante${daysRemaining !== 1 ? 's' : ''}`
+                      }
+                    </span>
+                    <span className="text-xs opacity-75">
+                      (Conclusão: {completionDate.toLocaleDateString('pt-BR')})
+                    </span>
+                  </div>
+                );
+              })()}
             </div>
           </div>
           

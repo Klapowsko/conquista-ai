@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/conquista-ai/conquista-ai/internal/models"
@@ -64,6 +65,53 @@ func (h *KeyResultHandler) GetByOKRID(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "erro ao buscar Key Results"})
 		return
+	}
+
+	// Buscar OKR para calcular expected_completion_date
+	okr, err := h.okrRepo.GetByID(okrID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "erro ao buscar OKR"})
+		return
+	}
+
+	// Calcular expected_completion_date para cada Key Result
+	if okr != nil && okr.CompletionDate != nil && len(keyResults) > 0 {
+		now := time.Now()
+		completionDate := *okr.CompletionDate
+		
+		// Calcular dias restantes do OKR
+		daysRemaining := int(completionDate.Sub(now).Hours() / 24)
+		
+		if daysRemaining > 0 {
+			// Dividir o tempo pelo número de Key Results
+			daysPerKeyResult := daysRemaining / len(keyResults)
+			
+			// Para cada Key Result, calcular sua data esperada de conclusão
+			// Distribuir progressivamente: cada Key Result termina após o anterior
+			// Exemplo: se temos 90 dias e 3 Key Results, cada um tem ~30 dias
+			// Key Result 1 termina em 30 dias, Key Result 2 em 60 dias, Key Result 3 em 90 dias
+			accumulatedDays := 0
+			for i := range keyResults {
+				// Calcular dias acumulados até este Key Result
+				daysForThisKR := daysPerKeyResult
+				
+				// Se houver resto na divisão, distribuir nos primeiros Key Results
+				if i < daysRemaining%len(keyResults) {
+					daysForThisKR++
+				}
+				
+				accumulatedDays += daysForThisKR
+				
+				// Calcular data esperada: hoje + dias acumulados até este Key Result
+				expectedDate := now.AddDate(0, 0, accumulatedDays)
+				keyResults[i].ExpectedCompletionDate = &expectedDate
+			}
+		} else {
+			// Se a data já passou, ainda calcular mas usar a data de conclusão do OKR
+			for i := range keyResults {
+				keyResults[i].ExpectedCompletionDate = okr.CompletionDate
+			}
+		}
 	}
 
 	c.JSON(http.StatusOK, keyResults)

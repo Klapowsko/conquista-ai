@@ -25,7 +25,7 @@ export default function OKRCard({ okr, onDelete, progress = 0 }: OKRCardProps) {
               {okr.objective}
             </h3>
           </Link>
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap mb-2">
             {okr.category && (
               <CategoryTooltip categoryName={okr.category.name} position="top">
                 <span className="inline-block px-3 py-1 bg-blue-50 text-blue-700 text-xs font-medium rounded-full border border-blue-200 cursor-help hover:bg-blue-100 transition-colors">
@@ -35,6 +35,32 @@ export default function OKRCard({ okr, onDelete, progress = 0 }: OKRCardProps) {
             )}
             <StatusBadge status={status} size="sm" />
           </div>
+          {okr.completion_date && (() => {
+            const completionDate = new Date(okr.completion_date);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const daysRemaining = Math.ceil((completionDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+            const isOverdue = daysRemaining < 0;
+            const isNearDeadline = daysRemaining >= 0 && daysRemaining <= 30;
+            
+            return (
+              <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
+                isOverdue 
+                  ? 'bg-red-50 text-red-700 border border-red-200' 
+                  : isNearDeadline 
+                    ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                    : 'bg-gray-50 text-gray-600 border border-gray-200'
+              }`}>
+                <span>📅</span>
+                <span>
+                  {isOverdue 
+                    ? `Vencido há ${Math.abs(daysRemaining)}d`
+                    : `${daysRemaining}d restante${daysRemaining !== 1 ? 's' : ''}`
+                  }
+                </span>
+              </div>
+            );
+          })()}
         </div>
         <button
           onClick={(e) => {
