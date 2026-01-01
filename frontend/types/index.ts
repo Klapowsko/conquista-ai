@@ -10,6 +10,7 @@ export interface OKR {
   objective: string;
   category_id: number;
   category?: Category;
+  completion_date?: string;
   created_at: string;
   updated_at: string;
 }
@@ -19,6 +20,7 @@ export interface KeyResult {
   okr_id: number;
   title: string;
   completed: boolean;
+  expected_completion_date?: string;
   created_at: string;
   updated_at: string;
 }
@@ -55,11 +57,13 @@ export interface CreateCategoryRequest {
 export interface CreateOKRRequest {
   objective: string;
   category_id: number;
+  completion_date?: string;
 }
 
 export interface UpdateOKRRequest {
   objective: string;
   category_id: number;
+  completion_date?: string;
 }
 
 export interface CreateKeyResultRequest {
