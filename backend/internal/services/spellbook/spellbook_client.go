@@ -59,6 +59,7 @@ type KeyResultsResponse struct {
 type RoadmapRequest struct {
 	Topic        string `json:"topic"`
 	AvailableDays *int  `json:"available_days,omitempty"`
+	ExactItemCount *int `json:"exact_item_count,omitempty"` // Número exato de itens a serem gerados
 }
 
 type RoadmapResponse struct {
@@ -186,10 +187,11 @@ func (c *Client) GenerateKeyResults(objective string, count int, completionDate 
 	return &keyResultsResp, nil
 }
 
-func (c *Client) GenerateRoadmap(topic string, availableDays *int) (*RoadmapResponse, error) {
+func (c *Client) GenerateRoadmap(topic string, availableDays *int, exactItemCount *int) (*RoadmapResponse, error) {
 	reqBody := RoadmapRequest{
 		Topic:        topic,
 		AvailableDays: availableDays,
+		ExactItemCount: exactItemCount,
 	}
 
 	jsonData, err := json.Marshal(reqBody)

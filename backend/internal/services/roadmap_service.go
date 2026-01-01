@@ -116,17 +116,46 @@ func (s *RoadmapService) GenerateRoadmap(keyResultID int64) (*models.Roadmap, er
 		availableDays = &defaultDays
 	}
 
-	// Log para debug
-	if kr.ExpectedCompletionDate != nil {
-		fmt.Printf("[DEBUG] GenerateRoadmap - KeyResultID: %d, ExpectedCompletionDate: %v, AvailableDays: %d\n", 
-			keyResultID, *kr.ExpectedCompletionDate, *availableDays)
+	// Calcular número de itens baseado no tempo disponível
+	// Cada item do roadmap se tornará uma trilha educacional com tempo específico
+	// Definir tempo mínimo por trilha baseado no tempo disponível
+	var minDaysPerTrail int
+	if *availableDays < 14 {
+		// Tempo curto: trilhas curtas (3 dias)
+		minDaysPerTrail = 3
+	} else if *availableDays <= 30 {
+		// Tempo médio: trilhas médias (5 dias)
+		minDaysPerTrail = 5
+	} else if *availableDays <= 60 {
+		// Tempo médio-longo: trilhas mais longas (6 dias)
+		minDaysPerTrail = 6
 	} else {
-		fmt.Printf("[DEBUG] GenerateRoadmap - KeyResultID: %d, ExpectedCompletionDate: nil, AvailableDays: %d (calculado do OKR)\n", 
-			keyResultID, *availableDays)
+		// Tempo longo: trilhas extensas (7 dias)
+		minDaysPerTrail = 7
 	}
 
-	// Gerar roadmap via Spellbook
-	roadmapResp, err := s.spellbookClient.GenerateRoadmap(kr.Title, availableDays)
+	// Calcular número de itens: dividir tempo disponível pelo tempo mínimo por trilha
+	exactItemCount := *availableDays / minDaysPerTrail
+
+	// Garantir limites: mínimo de 3 itens, máximo de 20 itens
+	if exactItemCount < 3 {
+		exactItemCount = 3
+	} else if exactItemCount > 20 {
+		exactItemCount = 20
+	}
+
+	// Log para debug
+	estimatedDaysPerTrail := *availableDays / exactItemCount
+	if kr.ExpectedCompletionDate != nil {
+		fmt.Printf("[DEBUG] GenerateRoadmap - KeyResultID: %d, ExpectedCompletionDate: %v, AvailableDays: %d, ExactItemCount: %d, MinDaysPerTrail: %d, EstimatedDaysPerTrail: %d\n", 
+			keyResultID, *kr.ExpectedCompletionDate, *availableDays, exactItemCount, minDaysPerTrail, estimatedDaysPerTrail)
+	} else {
+		fmt.Printf("[DEBUG] GenerateRoadmap - KeyResultID: %d, ExpectedCompletionDate: nil, AvailableDays: %d (calculado do OKR), ExactItemCount: %d, MinDaysPerTrail: %d, EstimatedDaysPerTrail: %d\n", 
+			keyResultID, *availableDays, exactItemCount, minDaysPerTrail, estimatedDaysPerTrail)
+	}
+
+	// Gerar roadmap via Spellbook passando o número exato de itens
+	roadmapResp, err := s.spellbookClient.GenerateRoadmap(kr.Title, availableDays, &exactItemCount)
 	if err != nil {
 		return nil, fmt.Errorf("erro ao gerar roadmap: %w", err)
 	}
@@ -136,8 +165,8 @@ func (s *RoadmapService) GenerateRoadmap(keyResultID int64) (*models.Roadmap, er
 	for _, cat := range roadmapResp.Roadmap {
 		totalItemsGenerated += len(cat.Items)
 	}
-	fmt.Printf("[DEBUG] GenerateRoadmap - KeyResultID: %d, TotalItemsGenerated: %d, ExpectedMaxItems: %d\n", 
-		keyResultID, totalItemsGenerated, *availableDays)
+	fmt.Printf("[DEBUG] GenerateRoadmap - KeyResultID: %d, TotalItemsGenerated: %d, ExpectedExactItems: %d\n", 
+		keyResultID, totalItemsGenerated, exactItemCount)
 
 	// Converter resposta do Spellbook para modelo interno
 	roadmap := &models.Roadmap{
