@@ -6,16 +6,14 @@ import (
 )
 
 type Config struct {
-	Port            string
-	DatabaseURL     string
-	SpellbookAPIURL string
+	Port        string
+	DatabaseURL string
 }
 
 func Load() (*Config, error) {
 	cfg := &Config{
-		Port:            getEnv("PORT"),
-		DatabaseURL:     getEnv("DATABASE_URL"),
-		SpellbookAPIURL: getEnv("SPELLBOOK_API_URL"),
+		Port:        os.Getenv("PORT"),
+		DatabaseURL: os.Getenv("DATABASE_URL"),
 	}
 
 	if cfg.Port == "" {
@@ -24,13 +22,5 @@ func Load() (*Config, error) {
 	if cfg.DatabaseURL == "" {
 		return nil, fmt.Errorf("DATABASE_URL é obrigatória")
 	}
-	if cfg.SpellbookAPIURL == "" {
-		return nil, fmt.Errorf("SPELLBOOK_API_URL é obrigatória")
-	}
-
 	return cfg, nil
-}
-
-func getEnv(key string) string {
-	return os.Getenv(key)
 }

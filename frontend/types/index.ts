@@ -1,3 +1,5 @@
+export type Difficulty = 'easy' | 'medium' | 'hard';
+
 export interface Category {
   id: number;
   name: string;
@@ -5,155 +7,122 @@ export interface Category {
   updated_at: string;
 }
 
-export interface OKR {
+export interface Reward {
+  coins: number;
+  xp: number;
+}
+
+export interface Goal {
   id: number;
-  objective: string;
+  title: string;
+  description: string;
   category_id: number;
   category?: Category;
-  completion_date?: string;
+  difficulty: Difficulty;
+  /** "YYYY-MM-DD" */
+  target_date: string | null;
+  completed_at: string | null;
+  milestones_total: number;
+  milestones_completed: number;
+  rewards: { per_milestone: Reward; on_complete: Reward };
   created_at: string;
   updated_at: string;
 }
 
-export interface KeyResult {
-  id: number;
-  okr_id: number;
+export interface GoalRequest {
   title: string;
-  completed: boolean;
-  expected_completion_date?: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface KeyResultWithOKR extends KeyResult {
-  okr_title: string;
-  okr_completion_date?: string;
-}
-
-export interface RoadmapCategory {
-  id: number;
-  roadmap_id: number;
-  category: string;
-  items: RoadmapItem[];
-}
-
-export interface RoadmapItem {
-  id: number;
+  description: string;
   category_id: number;
+  difficulty: Difficulty;
+  target_date: string | null;
+}
+
+export interface Milestone {
+  id: number;
+  goal_id: number;
   title: string;
   completed: boolean;
+  /** "YYYY-MM-DD" */
+  due_date: string | null;
+  completed_at: string | null;
   created_at: string;
   updated_at: string;
 }
 
-export interface Roadmap {
+export interface MilestoneWithGoal extends Milestone {
+  goal_title: string;
+  goal_difficulty: Difficulty;
+  goal_target_date: string | null;
+  goal_completed_at: string | null;
+  reward: Reward;
+}
+
+export interface ShopReward {
   id: number;
-  key_result_id: number;
-  topic: string;
-  categories: RoadmapCategory[];
-  created_at: string;
-  updated_at: string;
-}
-
-export interface CreateCategoryRequest {
   name: string;
-}
-
-export interface CreateOKRRequest {
-  objective: string;
-  category_id: number;
-  completion_date?: string;
-}
-
-export interface UpdateOKRRequest {
-  objective: string;
-  category_id: number;
-  completion_date?: string;
-}
-
-export interface CreateKeyResultRequest {
-  okr_id: number;
-  title: string;
-  expected_completion_date?: string;
-}
-
-export interface UpdateKeyResultRequest {
-  title: string;
-  completed: boolean;
-}
-
-export interface EducationalResource {
-  id: number;
-  educational_roadmap_id: number;
-  type: string;
-  title: string;
   description: string;
-  url?: string;
-  chapters?: string[];
-  duration?: string;
-  author?: string;
-  completed: boolean;
+  icon: string;
+  cost: number;
   created_at: string;
   updated_at: string;
 }
 
-export interface EducationalRoadmap {
-  id: number;
-  roadmap_item_id: number;
-  topic: string;
-  books: EducationalResource[];
-  courses: EducationalResource[];
-  videos: EducationalResource[];
-  articles: EducationalResource[];
-  projects: EducationalResource[];
-  created_at: string;
-  updated_at: string;
+export interface ShopRewardRequest {
+  name: string;
+  description: string;
+  icon: string;
+  cost: number;
 }
 
-// Educational Trail Types
-export interface TrailActivity {
-  id: number;
-  step_id: number;
-  type: string;
-  resource_id: string;
-  title: string;
-  description: string;
-  chapters?: string[];
-  duration?: string;
-  url?: string;
-  progress?: string;
-  completed: boolean;
-  created_at: string;
-  updated_at: string;
+export interface Wallet {
+  coins: number;
+  total_earned: number;
+  total_spent: number;
+  purchases: number;
+  level: number;
+  total_xp: number;
+  xp_into_level: number;
+  xp_for_next_level: number;
+  xp_to_next_level: number;
+  progress_percent: number;
 }
 
-export interface EducationalTrailStep {
+export type TransactionType =
+  | 'milestone_completed'
+  | 'milestone_reopened'
+  | 'goal_completed'
+  | 'goal_reopened'
+  | 'reward_purchased';
+
+export interface WalletTransaction {
   id: number;
-  trail_id: number;
-  day: number;
-  title: string;
+  type: TransactionType;
+  coins: number;
+  xp: number;
   description: string;
-  activities: TrailActivity[];
+  goal_id: number | null;
+  milestone_id: number | null;
+  reward_id: number | null;
   created_at: string;
 }
 
-export interface TrailResource {
-  title: string;
-  description: string;
-  author?: string;
-  chapters?: string[];
-  duration?: string;
-  url?: string;
+export interface ProgressResult {
+  change: Reward;
+  level_up: boolean;
+  wallet: Wallet;
+  goal?: Goal;
+  milestone?: Milestone;
 }
 
-export interface EducationalTrail {
-  id: number;
-  roadmap_item_id: number;
-  topic: string;
-  total_days: number;
-  description: string;
-  steps: EducationalTrailStep[];
-  resources: Record<string, TrailResource>;
-  created_at: string;
-  updated_at: string;
+export interface PurchaseResult {
+  reward: ShopReward;
+  transaction: WalletTransaction;
+  wallet: Wallet;
+}
+
+export interface DifficultyRule {
+  difficulty: Difficulty;
+  label: string;
+  milestone_reward: Reward;
+  goal_reward: Reward;
 }

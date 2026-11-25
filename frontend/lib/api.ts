@@ -1,133 +1,91 @@
 import {
   Category,
-  OKR,
-  KeyResult,
-  KeyResultWithOKR,
-  Roadmap,
-  EducationalRoadmap,
-  EducationalTrail,
-  CreateCategoryRequest,
-  CreateOKRRequest,
-  UpdateOKRRequest,
-  CreateKeyResultRequest,
-  UpdateKeyResultRequest,
+  Goal,
+  GoalRequest,
+  Milestone,
+  MilestoneWithGoal,
+  ProgressResult,
+  PurchaseResult,
+  ShopReward,
+  ShopRewardRequest,
+  Wallet,
+  WalletTransaction,
+  DifficultyRule,
 } from '@/types';
 
-// @ts-ignore - process.env é disponibilizado pelo Next.js
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> {
-  try {
-    const response = await fetch(`${API_URL}${endpoint}`, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options?.headers,
-      },
-    });
-
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: 'Erro desconhecido' }));
-      const errorMessage = error.error || `HTTP error! status: ${response.status}`;
-      const apiError = new Error(errorMessage) as any;
-      apiError.status = response.status;
-      throw apiError;
-    }
-
-    return response.json();
-  } catch (error: any) {
-    // Se for erro de conexão (network error), fornece mensagem mais clara
-    if (error.message?.includes('Failed to fetch') || error.message?.includes('NetworkError') || error.code === 'ECONNREFUSED') {
-      const connectionError = new Error(`Erro de conexão: Não foi possível conectar ao backend em ${API_URL}. Verifique se o servidor está rodando.`) as any;
-      connectionError.status = 0;
-      connectionError.isConnectionError = true;
-      throw connectionError;
-    }
-    throw error;
+export class ApiError extends Error {
+  constructor(message: string, public status: number) {
+    super(message);
   }
 }
 
-// Categories
+async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> {
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}${endpoint}`, {
+      ...options,
+      headers: { 'Content-Type': 'application/json', ...options?.headers },
+    });
+  } catch {
+    throw new ApiError(
+      `Não foi possível conectar ao servidor em ${API_URL}. Verifique se o backend está rodando.`,
+      0,
+    );
+  }
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new ApiError(body.error || `Erro HTTP ${response.status}`, response.status);
+  }
+  return response.json();
+}
+
+const post = <T>(endpoint: string, body?: unknown) =>
+  fetchAPI<T>(endpoint, { method: 'POST', body: body === undefined ? undefined : JSON.stringify(body) });
+const put = <T>(endpoint: string, body: unknown) =>
+  fetchAPI<T>(endpoint, { method: 'PUT', body: JSON.stringify(body) });
+const del = (endpoint: string) => fetchAPI<void>(endpoint, { method: 'DELETE' });
+
 export const categoriesAPI = {
-  getAll: (): Promise<Category[]> => fetchAPI<Category[]>('/categories'),
-  getById: (id: number): Promise<Category> => fetchAPI<Category>(`/categories/${id}`),
-  create: (data: CreateCategoryRequest): Promise<Category> =>
-    fetchAPI<Category>('/categories', { method: 'POST', body: JSON.stringify(data) }),
-  update: (id: number, data: CreateCategoryRequest): Promise<Category> =>
-    fetchAPI<Category>(`/categories/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-  delete: (id: number): Promise<void> =>
-    fetchAPI<void>(`/categories/${id}`, { method: 'DELETE' }),
+  getAll: () => fetchAPI<Category[]>('/categories'),
 };
 
-// OKRs
-export const okrsAPI = {
-  getAll: (categoryId?: number): Promise<OKR[]> => {
-    const url = categoryId ? `/okrs?category_id=${categoryId}` : '/okrs';
-    return fetchAPI<OKR[]>(url);
-  },
-  getById: (id: number): Promise<OKR> => fetchAPI<OKR>(`/okrs/${id}`),
-  create: (data: CreateOKRRequest): Promise<OKR> =>
-    fetchAPI<OKR>('/okrs', { method: 'POST', body: JSON.stringify(data) }),
-  update: (id: number, data: UpdateOKRRequest): Promise<OKR> =>
-    fetchAPI<OKR>(`/okrs/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-  delete: (id: number): Promise<void> =>
-    fetchAPI<void>(`/okrs/${id}`, { method: 'DELETE' }),
-  generateKeyResults: (id: number): Promise<void> =>
-    fetchAPI<void>(`/okrs/${id}/generate-key-results`, { method: 'POST' }),
+export const goalsAPI = {
+  getAll: (categoryId?: number) =>
+    fetchAPI<Goal[]>(categoryId ? `/goals?category_id=${categoryId}` : '/goals'),
+  getById: (id: number) => fetchAPI<Goal>(`/goals/${id}`),
+  create: (data: GoalRequest) => post<Goal>('/goals', data),
+  update: (id: number, data: GoalRequest) => put<Goal>(`/goals/${id}`, data),
+  delete: (id: number) => del(`/goals/${id}`),
+  complete: (id: number) => post<ProgressResult>(`/goals/${id}/complete`),
+  reopen: (id: number) => post<ProgressResult>(`/goals/${id}/reopen`),
+  milestones: (id: number) => fetchAPI<Milestone[]>(`/goals/${id}/milestones`),
 };
 
-// Key Results
-export const keyResultsAPI = {
-  getAll: (): Promise<KeyResultWithOKR[]> =>
-    fetchAPI<KeyResultWithOKR[]>('/key-results'),
-  getByOKRId: (okrId: number): Promise<KeyResult[]> =>
-    fetchAPI<KeyResult[]>(`/okrs/${okrId}/key-results`),
-  create: (data: CreateKeyResultRequest): Promise<KeyResult> =>
-    fetchAPI<KeyResult>('/key-results', { method: 'POST', body: JSON.stringify(data) }),
-  update: (id: number, data: UpdateKeyResultRequest): Promise<KeyResult> =>
-    fetchAPI<KeyResult>(`/key-results/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-  delete: (id: number): Promise<void> =>
-    fetchAPI<void>(`/key-results/${id}`, { method: 'DELETE' }),
+export const milestonesAPI = {
+  getAll: () => fetchAPI<MilestoneWithGoal[]>('/milestones'),
+  create: (data: { goal_id: number; title: string; due_date: string | null }) =>
+    post<Milestone>('/milestones', data),
+  update: (id: number, data: { title: string; due_date: string | null }) =>
+    put<Milestone>(`/milestones/${id}`, data),
+  delete: (id: number) => del(`/milestones/${id}`),
+  complete: (id: number) => post<ProgressResult>(`/milestones/${id}/complete`),
+  reopen: (id: number) => post<ProgressResult>(`/milestones/${id}/reopen`),
 };
 
-// Roadmaps
-export const roadmapsAPI = {
-  generate: (keyResultId: number): Promise<Roadmap> =>
-    fetchAPI<Roadmap>(`/key-results/${keyResultId}/roadmap`, { method: 'POST' }),
-  getByKeyResultId: (keyResultId: number): Promise<Roadmap> =>
-    fetchAPI<Roadmap>(`/key-results/${keyResultId}/roadmap`),
-  delete: (keyResultId: number): Promise<void> =>
-    fetchAPI<void>(`/key-results/${keyResultId}/roadmap`, { method: 'DELETE' }),
-  updateItem: (itemId: number, completed: boolean): Promise<void> =>
-    fetchAPI<void>(`/roadmap-items/${itemId}`, {
-      method: 'PUT',
-      body: JSON.stringify({ completed }),
-    }),
-  generateEducational: (roadmapItemId: number, itemTitle: string): Promise<EducationalRoadmap> =>
-    fetchAPI<EducationalRoadmap>('/educational-roadmap', {
-      method: 'POST',
-      body: JSON.stringify({ roadmap_item_id: roadmapItemId, item_title: itemTitle }),
-    }),
-  getEducationalByRoadmapItemId: (roadmapItemId: number): Promise<EducationalRoadmap> =>
-    fetchAPI<EducationalRoadmap>(`/roadmap-items/${roadmapItemId}/educational-roadmap`),
-  updateEducationalResource: (resourceId: number, completed: boolean): Promise<void> =>
-    fetchAPI<void>(`/educational-resources/${resourceId}`, {
-      method: 'PUT',
-      body: JSON.stringify({ completed }),
-    }),
-  generateEducationalTrail: (roadmapItemId: number, itemTitle: string): Promise<EducationalTrail> =>
-    fetchAPI<EducationalTrail>('/educational-trail', {
-      method: 'POST',
-      body: JSON.stringify({ roadmap_item_id: roadmapItemId, item_title: itemTitle }),
-    }),
-  getEducationalTrailByRoadmapItemId: (roadmapItemId: number): Promise<EducationalTrail> =>
-    fetchAPI<EducationalTrail>(`/roadmap-items/${roadmapItemId}/educational-trail`),
-  deleteEducationalTrail: (roadmapItemId: number): Promise<void> =>
-    fetchAPI<void>(`/roadmap-items/${roadmapItemId}/educational-trail`, { method: 'DELETE' }),
-  updateTrailActivity: (activityId: number, completed: boolean): Promise<void> =>
-    fetchAPI<void>(`/trail-activities/${activityId}`, {
-      method: 'PUT',
-      body: JSON.stringify({ completed }),
-    }),
+export const shopAPI = {
+  rules: () => fetchAPI<{ difficulties: DifficultyRule[]; xp_per_level_step: number }>('/gamification/rules'),
+  wallet: () => fetchAPI<Wallet>('/wallet'),
+  history: (limit = 100) => fetchAPI<WalletTransaction[]>(`/wallet/transactions?limit=${limit}`),
+  rewards: () => fetchAPI<ShopReward[]>('/rewards'),
+  createReward: (data: ShopRewardRequest) => post<ShopReward>('/rewards', data),
+  updateReward: (id: number, data: ShopRewardRequest) => put<ShopReward>(`/rewards/${id}`, data),
+  deleteReward: (id: number) => del(`/rewards/${id}`),
+  purchase: (id: number) => post<PurchaseResult>(`/rewards/${id}/purchase`),
 };
 
+export function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : 'Erro desconhecido';
+}

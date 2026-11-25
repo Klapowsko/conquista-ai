@@ -7,20 +7,19 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/conquista-ai/conquista-ai/internal/config"
 	"github.com/conquista-ai/conquista-ai/internal/database"
 	"github.com/conquista-ai/conquista-ai/internal/handlers"
 	"github.com/conquista-ai/conquista-ai/internal/repositories"
 	"github.com/conquista-ai/conquista-ai/internal/routes"
 	"github.com/conquista-ai/conquista-ai/internal/services"
-	spellbookClient "github.com/conquista-ai/conquista-ai/internal/services/spellbook"
+	"github.com/gin-gonic/gin"
 )
 
 type App struct {
-	Config  *config.Config
-	DB      *sql.DB
-	Router  *gin.Engine
+	Config *config.Config
+	DB     *sql.DB
+	Router *gin.Engine
 }
 
 func NewApp() (*App, error) {
@@ -36,53 +35,40 @@ func NewApp() (*App, error) {
 
 	// Repositórios
 	categoryRepo := repositories.NewCategoryRepository(db)
-	okrRepo := repositories.NewOKRRepository(db)
-	keyResultRepo := repositories.NewKeyResultRepository(db)
-	roadmapRepo := repositories.NewRoadmapRepository(db)
-	educationalRoadmapRepo := repositories.NewEducationalRoadmapRepository(db)
-	educationalTrailRepo := repositories.NewEducationalTrailRepository(db)
-
-	// Cliente Spellbook
-	spellbookClient := spellbookClient.NewClient(cfg.SpellbookAPIURL)
+	goalRepo := repositories.NewGoalRepository(db)
+	milestoneRepo := repositories.NewMilestoneRepository(db)
+	rewardRepo := repositories.NewRewardRepository(db)
+	walletRepo := repositories.NewWalletRepository(db)
 
 	// Serviços
-	okrService := services.NewOKRService(okrRepo, keyResultRepo, categoryRepo, spellbookClient)
-	roadmapService := services.NewRoadmapService(roadmapRepo, educationalRoadmapRepo, educationalTrailRepo, keyResultRepo, okrRepo, spellbookClient)
+	goalService := services.NewGoalService(db, goalRepo, categoryRepo, walletRepo)
+	milestoneService := services.NewMilestoneService(db, milestoneRepo, goalRepo, walletRepo)
+	shopService := services.NewShopService(db, rewardRepo, walletRepo)
 
-	// Handlers
-	categoryHandler := handlers.NewCategoryHandler(categoryRepo)
-	okrHandler := handlers.NewOKRHandler(okrService)
-	keyResultHandler := handlers.NewKeyResultHandler(keyResultRepo, okrRepo)
-	roadmapHandler := handlers.NewRoadmapHandler(roadmapService)
-
-	// Router
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.Default()
 
-	routes.SetupRoutes(router, categoryHandler, okrHandler, keyResultHandler, roadmapHandler)
+	routes.SetupRoutes(router, routes.Handlers{
+		Category:  handlers.NewCategoryHandler(categoryRepo),
+		Goal:      handlers.NewGoalHandler(goalService, milestoneService),
+		Milestone: handlers.NewMilestoneHandler(milestoneService),
+		Shop:      handlers.NewShopHandler(shopService),
+	})
 
-	return &App{
-		Config: cfg,
-		DB:     db,
-		Router: router,
-	}, nil
+	return &App{Config: cfg, DB: db, Router: router}, nil
 }
 
 func (a *App) Run() error {
 	addr := fmt.Sprintf(":%s", a.Config.Port)
 	log.Printf("Servidor Conquista AI iniciado na porta %s", a.Config.Port)
-	log.Printf("Health check: http://localhost%s/health", addr)
 	log.Printf("API disponível em: http://localhost%s/api/v1", addr)
 
-	// Criar servidor HTTP com timeout aumentado para requisições longas (trilhas educacionais)
 	srv := &http.Server{
 		Addr:         addr,
 		Handler:      a.Router,
-		ReadTimeout:  180 * time.Second, // 3 minutos
-		WriteTimeout: 180 * time.Second, // 3 minutos
+		ReadTimeout:  30 * time.Second,
+		WriteTimeout: 30 * time.Second,
 		IdleTimeout:  120 * time.Second,
 	}
-
 	return srv.ListenAndServe()
 }
-

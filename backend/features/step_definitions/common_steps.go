@@ -2,136 +2,193 @@ package step_definitions
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/cucumber/godog"
 )
 
 type apiContext struct {
-	response *http.Response
-	body     []byte
-	baseURL  string
+	baseURL     string
+	status      int
+	body        []byte
+	goalID      int64
+	milestoneID int64
+	rewardID    int64
+	// Para desfazer ao final do cenário e não deixar moedas sobrando na carteira.
+	goalCompleted      bool
+	milestoneCompleted bool
 }
 
 var ctx *apiContext
 
-func InitializeCommonScenario(ctx *godog.ScenarioContext) {
-	ctx.Step(`^que o sistema está configurado$`, queOSistemaEstaConfigurado)
-	ctx.Step(`^existe uma categoria com name "([^"]*)"$`, existeUmaCategoriaComName)
-	ctx.Step(`^existe um OKR com objective "([^"]*)"$`, existeUmOKRComObjective)
-	ctx.Step(`^existe um Key Result com title "([^"]*)"$`, existeUmKeyResultComTitle)
-	ctx.Step(`^existe um roadmap para um Key Result$`, existeUmRoadmapParaUmKeyResult)
-	ctx.Step(`^existe um roadmap com itens$`, existeUmRoadmapComItens)
-	ctx.Step(`^existem OKRs cadastrados$`, existemOKRsCadastrados)
-	ctx.Step(`^existem OKRs na categoria "([^"]*)"$`, existemOKRsNaCategoria)
+func InitializeScenario(sc *godog.ScenarioContext) {
+	sc.After(func(c context.Context, _ *godog.Scenario, err error) (context.Context, error) {
+		cleanup()
+		return c, err
+	})
+
+	sc.Step(`^que o sistema está configurado$`, queOSistemaEstaConfigurado)
+	sc.Step(`^eu listo as categorias$`, func() error { return request("GET", "/api/v1/categories", nil) })
+	sc.Step(`^devem existir as categorias "([^"]*)"$`, devemExistirAsCategorias)
+	sc.Step(`^que existe um objetivo "([^"]*)" com dificuldade "([^"]*)"$`, existeUmObjetivo)
+	sc.Step(`^eu crio um objetivo "([^"]*)" com dificuldade "([^"]*)"$`, criarObjetivo)
+	sc.Step(`^o objetivo tem a meta "([^"]*)"$`, oObjetivoTemAMeta)
+	sc.Step(`^eu concluo a meta$`, func() error { return progress("/api/v1/milestones/%d/complete", ctx.milestoneID, &ctx.milestoneCompleted, true) })
+	sc.Step(`^eu reabro a meta$`, func() error { return progress("/api/v1/milestones/%d/reopen", ctx.milestoneID, &ctx.milestoneCompleted, false) })
+	sc.Step(`^eu concluo o objetivo$`, func() error { return progress("/api/v1/goals/%d/complete", ctx.goalID, &ctx.goalCompleted, true) })
+	sc.Step(`^o ganho deve ser de (-?\d+) moedas e (-?\d+) XP$`, oGanhoDeveSer)
+	sc.Step(`^que existe uma recompensa "([^"]*)" custando (\d+) moedas$`, existeUmaRecompensa)
+	sc.Step(`^eu compro a recompensa$`, func() error { return request("POST", fmt.Sprintf("/api/v1/rewards/%d/purchase", ctx.rewardID), nil) })
+	sc.Step(`^a resposta deve ter status (\d+)$`, aRespostaDeveTerStatus)
 }
 
 func queOSistemaEstaConfigurado() error {
-	ctx = &apiContext{
-		baseURL: getBaseURL(),
+	url := os.Getenv("API_BASE_URL")
+	if url == "" {
+		url = "http://localhost:8080"
 	}
+	ctx = &apiContext{baseURL: url}
 	return nil
 }
 
-func getBaseURL() string {
-	url := os.Getenv("API_BASE_URL")
-	if url == "" {
-		return "http://localhost:8080"
-	}
-	return url
-}
-
-func makeRequest(method, path string, body interface{}) error {
-	var reqBody io.Reader
+func request(method, path string, body any) error {
+	var reader io.Reader
 	if body != nil {
-		jsonData, err := json.Marshal(body)
+		data, err := json.Marshal(body)
 		if err != nil {
 			return err
 		}
-		reqBody = bytes.NewBuffer(jsonData)
+		reader = bytes.NewReader(data)
 	}
-
-	req, err := http.NewRequest(method, ctx.baseURL+path, reqBody)
+	req, err := http.NewRequest(method, ctx.baseURL+path, reader)
 	if err != nil {
 		return err
 	}
-
-	if body != nil {
-		req.Header.Set("Content-Type", "application/json")
-	}
-
+	req.Header.Set("Content-Type", "application/json")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
+		return fmt.Errorf("API indisponível em %s: %w", ctx.baseURL, err)
+	}
+	defer resp.Body.Close()
+	ctx.status = resp.StatusCode
+	ctx.body, err = io.ReadAll(resp.Body)
+	return err
+}
+
+func createdID() (int64, error) {
+	var obj struct {
+		ID int64 `json:"id"`
+	}
+	if err := json.Unmarshal(ctx.body, &obj); err != nil || obj.ID == 0 {
+		return 0, fmt.Errorf("resposta sem id (status %d): %s", ctx.status, ctx.body)
+	}
+	return obj.ID, nil
+}
+
+func criarObjetivo(title, difficulty string) error {
+	return request("POST", "/api/v1/goals", map[string]any{"title": title, "category_id": 1, "difficulty": difficulty})
+}
+
+func existeUmObjetivo(title, difficulty string) error {
+	if err := criarObjetivo(title, difficulty); err != nil {
 		return err
 	}
+	id, err := createdID()
+	ctx.goalID = id
+	return err
+}
 
-	ctx.response = resp
-	ctx.body, _ = io.ReadAll(resp.Body)
-	resp.Body.Close()
+func oObjetivoTemAMeta(title string) error {
+	if err := request("POST", "/api/v1/milestones", map[string]any{"goal_id": ctx.goalID, "title": title}); err != nil {
+		return err
+	}
+	id, err := createdID()
+	ctx.milestoneID = id
+	return err
+}
 
+func progress(pathFmt string, id int64, flag *bool, completed bool) error {
+	if err := request("POST", fmt.Sprintf(pathFmt, id), nil); err != nil {
+		return err
+	}
+	if ctx.status == http.StatusOK {
+		*flag = completed
+	}
 	return nil
 }
 
-func existeUmaCategoriaComName(name string) error {
-	body := map[string]interface{}{
-		"name": name,
+func oGanhoDeveSer(coins, xp int) error {
+	var res struct {
+		Change struct {
+			Coins int `json:"coins"`
+			XP    int `json:"xp"`
+		} `json:"change"`
 	}
-	return makeRequest("POST", "/api/v1/categories", body)
+	if err := json.Unmarshal(ctx.body, &res); err != nil {
+		return fmt.Errorf("resposta inválida: %s", ctx.body)
+	}
+	if res.Change.Coins != coins || res.Change.XP != xp {
+		return fmt.Errorf("esperado %d moedas e %d XP, recebido %d moedas e %d XP", coins, xp, res.Change.Coins, res.Change.XP)
+	}
+	return nil
 }
 
-func existeUmOKRComObjective(objective string) error {
-	// Primeiro criar categoria se não existir
-	categoryBody := map[string]interface{}{
-		"name": "Profissional",
+func existeUmaRecompensa(name string, cost int) error {
+	if err := request("POST", "/api/v1/rewards", map[string]any{"name": name, "cost": cost}); err != nil {
+		return err
 	}
-	makeRequest("POST", "/api/v1/categories", categoryBody)
+	id, err := createdID()
+	ctx.rewardID = id
+	return err
+}
 
-	// Buscar categorias para pegar o ID
-	resp, _ := http.Get(ctx.baseURL + "/api/v1/categories")
-	if resp != nil && resp.StatusCode == 200 {
-		var categories []map[string]interface{}
-		json.NewDecoder(resp.Body).Decode(&categories)
-		resp.Body.Close()
-
-		if len(categories) > 0 {
-			categoryID := int(categories[0]["id"].(float64))
-			okrBody := map[string]interface{}{
-				"objective":  objective,
-				"category_id": categoryID,
-			}
-			return makeRequest("POST", "/api/v1/okrs", okrBody)
+func devemExistirAsCategorias(names string) error {
+	var list []struct {
+		Name string `json:"name"`
+	}
+	if err := json.Unmarshal(ctx.body, &list); err != nil {
+		return err
+	}
+	found := map[string]bool{}
+	for _, c := range list {
+		found[c.Name] = true
+	}
+	for _, n := range strings.Split(names, ", ") {
+		if !found[n] {
+			return fmt.Errorf("categoria %q não encontrada", n)
 		}
 	}
-
-	return fmt.Errorf("não foi possível criar OKR")
-}
-
-func existeUmKeyResultComTitle(title string) error {
-	// Implementação simplificada - em produção seria mais complexo
 	return nil
 }
 
-func existeUmRoadmapParaUmKeyResult() error {
-	// Implementação simplificada
+func aRespostaDeveTerStatus(status int) error {
+	if ctx.status != status {
+		return fmt.Errorf("esperado status %d, recebido %d: %s", status, ctx.status, ctx.body)
+	}
 	return nil
 }
 
-func existeUmRoadmapComItens() error {
-	// Implementação simplificada
-	return nil
+// cleanup estorna o que o cenário ganhou e apaga os dados criados.
+func cleanup() {
+	if ctx == nil {
+		return
+	}
+	if ctx.milestoneCompleted {
+		_ = request("POST", fmt.Sprintf("/api/v1/milestones/%d/reopen", ctx.milestoneID), nil)
+	}
+	if ctx.goalCompleted {
+		_ = request("POST", fmt.Sprintf("/api/v1/goals/%d/reopen", ctx.goalID), nil)
+	}
+	if ctx.goalID != 0 {
+		_ = request("DELETE", fmt.Sprintf("/api/v1/goals/%d", ctx.goalID), nil)
+	}
+	if ctx.rewardID != 0 {
+		_ = request("DELETE", fmt.Sprintf("/api/v1/rewards/%d", ctx.rewardID), nil)
+	}
 }
-
-func existemOKRsCadastrados() error {
-	// Implementação simplificada
-	return nil
-}
-
-func existemOKRsNaCategoria(categoryName string) error {
-	// Implementação simplificada
-	return nil
-}
-

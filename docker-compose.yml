@@ -31,7 +31,6 @@ services:
       - "${BACKEND_PORT}:8080"
     environment:
       DATABASE_URL: ${DATABASE_URL}
-      SPELLBOOK_API_URL: ${SPELLBOOK_API_URL}
       PORT: ${PORT}
     volumes:
       - ./backend:/app:z
