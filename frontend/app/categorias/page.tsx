@@ -1,98 +1,33 @@
-'use client';
-
-import { useEffect, useState } from 'react';
-import { Category } from '@/types';
-import { categoriesAPI } from '@/lib/api';
-import CategoryTooltip from '@/components/CategoryTooltip';
 import { getAllFixedCategories } from '@/lib/categories';
+import { PageTitle } from '@/components/ui';
+
+const STYLE = [
+  { icon: '🧘', color: 'text-sky-700', border: 'border-sky-300', shadow: '#bae6fd', bg: 'bg-sky-50' },
+  { icon: '💼', color: 'text-emerald-700', border: 'border-emerald-300', shadow: '#a7f3d0', bg: 'bg-emerald-50' },
+  { icon: '💞', color: 'text-rose-700', border: 'border-rose-300', shadow: '#fecdd3', bg: 'bg-rose-50' },
+];
 
 export default function CategoriesPage() {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    loadCategories();
-  }, []);
-
-  const loadCategories = async () => {
-    try {
-      const data = await categoriesAPI.getAll();
-      // Filtrar apenas as categorias fixas
-      const fixedCategories = getAllFixedCategories();
-      const fixedNames = fixedCategories.map(c => c.name);
-      const filtered = data.filter(cat => fixedNames.includes(cat.name));
-      setCategories(filtered);
-    } catch (error) {
-      console.error('Erro ao carregar categorias:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-24">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <div className="text-lg text-gray-600">Carregando...</div>
-        </div>
-      </div>
-    );
-  }
-
-  const fixedCategories = getAllFixedCategories();
-
   return (
-    <div className="py-4">
-      <div className="max-w-6xl mx-auto">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-3">Categorias</h1>
-          <p className="text-gray-600 text-lg">Os três pilares da sua vida</p>
-        </div>
-
-        {/* Layout em Tripé */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
-          {fixedCategories.map((categoryData, index) => {
-            const category = categories.find(c => c.name === categoryData.name);
-            if (!category) return null;
-
-            const colors = [
-              { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-700', icon: 'bg-blue-100' },
-              { bg: 'bg-green-50', border: 'border-green-200', text: 'text-green-700', icon: 'bg-green-100' },
-              { bg: 'bg-purple-50', border: 'border-purple-200', text: 'text-purple-700', icon: 'bg-purple-100' },
-            ];
-            const color = colors[index % colors.length];
-
-            return (
-              <CategoryTooltip key={category.id} categoryName={category.name} position="top">
-                <div className={`${color.bg} ${color.border} border-2 rounded-xl p-8 hover:shadow-lg transition-all cursor-help h-full`}>
-                  <div className="text-center">
-                    <div className={`${color.icon} w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4`}>
-                      <span className="text-2xl font-bold">{category.name.charAt(0)}</span>
-                    </div>
-                    <h3 className={`text-2xl font-bold ${color.text} mb-2`}>{category.name}</h3>
-                    {categoryData.description && (
-                      <p className="text-sm text-gray-600 mb-4">{categoryData.description}</p>
-                    )}
-                    <div className="mt-4">
-                      <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">Passe o mouse para ver subcategorias</p>
-                    </div>
-                  </div>
-                </div>
-              </CategoryTooltip>
-            );
-          })}
-        </div>
-
-        {/* Informação adicional */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 text-center">
-          <p className="text-gray-600">
-            <span className="font-semibold">Nota:</span> As categorias são fixas e representam os três pilares fundamentais.
-            Passe o mouse sobre cada categoria para ver suas subcategorias.
-          </p>
-        </div>
+    <div>
+      <PageTitle title="Categorias" subtitle="Os três pilares da vida do casal." />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        {getAllFixedCategories().map((c, i) => {
+          const s = STYLE[i % STYLE.length];
+          return (
+            <div key={c.name} className={`rounded-3xl border-2 p-6 ${s.bg} ${s.border}`} style={{ boxShadow: `0 5px 0 ${s.shadow}` }}>
+              <div className="text-5xl mb-3">{s.icon}</div>
+              <h2 className={`font-game text-3xl ${s.color}`}>{c.name}</h2>
+              {c.description && <p className="font-semibold text-slate-600 mt-1 mb-4">{c.description}</p>}
+              <div className="flex flex-wrap gap-1.5">
+                {c.subcategories.map((sub) => (
+                  <span key={sub} className="chip bg-white border-slate-200 text-slate-600">{sub}</span>
+                ))}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
 }
-

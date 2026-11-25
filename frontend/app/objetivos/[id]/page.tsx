@@ -10,9 +10,8 @@ import GoalForm from '@/components/GoalForm';
 import { DifficultyBadge } from '@/components/GoalCard';
 import ProgressBar from '@/components/ProgressBar';
 import Loading, { ErrorBox } from '@/components/Loading';
+import { CheckButton, CoinAmount, XP } from '@/components/ui';
 import { TONE_CLASSES, deadlineLabel, formatDate, formatDateTime, goalProgress, todayISO } from '@/lib/utils';
-
-const input = 'px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white';
 
 export default function GoalDetailPage() {
   const id = Number(useParams().id);
@@ -52,7 +51,7 @@ export default function GoalDetailPage() {
     return (
       <div className="max-w-xl mx-auto space-y-4">
         <ErrorBox message={error || 'Objetivo não encontrado'} onRetry={load} />
-        <Link href="/" className="text-blue-600 hover:underline">← Voltar aos objetivos</Link>
+        <Link href="/" className="btn btn-ghost">← Voltar aos objetivos</Link>
       </div>
     );
   }
@@ -77,7 +76,7 @@ export default function GoalDetailPage() {
   const toggleMilestone = (m: Milestone) =>
     run(m.id, async () => {
       const res = m.completed ? await milestonesAPI.reopen(m.id) : await milestonesAPI.complete(m.id);
-      applyProgress(res, m.completed ? 'Meta reaberta' : 'Meta concluída');
+      applyProgress(res, m.completed ? 'Meta reaberta' : 'Meta concluída!');
     });
 
   const toggleGoal = () => {
@@ -86,7 +85,7 @@ export default function GoalDetailPage() {
     if (done && !confirm(`Reabrir o objetivo? As ${goal.rewards.on_complete.coins} moedas do bônus serão estornadas.`)) return;
     run('goal', async () => {
       const res = done ? await goalsAPI.reopen(goal.id) : await goalsAPI.complete(goal.id);
-      applyProgress(res, done ? 'Objetivo reaberto' : 'Objetivo conquistado');
+      applyProgress(res, done ? 'Objetivo reaberto' : 'Objetivo conquistado! 🏆');
     });
   };
 
@@ -123,14 +122,13 @@ export default function GoalDetailPage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      <Link href="/" className="inline-block text-blue-600 hover:text-blue-800 font-medium">← Objetivos</Link>
+      <Link href="/" className="btn btn-ghost btn-sm">← Objetivos</Link>
 
-      <div className={`bg-white rounded-xl shadow-sm border p-6 sm:p-8 ${done ? 'border-emerald-200' : 'border-gray-100'}`}>
+      <div className={`card p-6 sm:p-8 ${done ? 'border-emerald-300' : ''}`} style={done ? { boxShadow: '0 4px 0 #a7f3d0' } : undefined}>
         {editing ? (
           <>
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Editar objetivo</h2>
-            <GoalForm
-              submitLabel="Salvar alterações"
+            <h2 className="font-game text-3xl text-slate-900 mb-5">Editar objetivo</h2>
+            <GoalForm submitLabel="Salvar"
               initial={{ title: goal.title, description: goal.description, category_id: goal.category_id, difficulty: goal.difficulty, target_date: goal.target_date }}
               onCancel={() => setEditing(false)}
               onSubmit={async (data) => {
@@ -138,110 +136,99 @@ export default function GoalDetailPage() {
                 setEditing(false);
                 notify('success', 'Objetivo atualizado');
                 await load();
-              }}
-            />
+              }} />
           </>
         ) : (
           <>
-            <div className="flex flex-col-reverse sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
+            <div className="flex flex-col-reverse sm:flex-row sm:items-start sm:justify-between gap-4 mb-5">
               <div className="flex-1 min-w-0">
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">{done && '🏆 '}{goal.title}</h1>
-                {goal.description && <p className="text-gray-600 mb-3">{goal.description}</p>}
-                <div className="flex flex-wrap items-center gap-2">
-                  {goal.category && (
-                    <span className="px-2.5 py-0.5 bg-blue-50 text-blue-700 text-xs font-medium rounded-full border border-blue-200">
-                      {goal.category.name}
-                    </span>
-                  )}
+                <h1 className="font-game text-4xl leading-tight text-slate-900 mb-2">{done && '🏆 '}{goal.title}</h1>
+                {goal.description && <p className="text-slate-600 font-semibold mb-3">{goal.description}</p>}
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {goal.category && <span className="chip bg-sky-50 text-sky-700 border-sky-200">{goal.category.name}</span>}
                   <DifficultyBadge difficulty={goal.difficulty} />
                   {goal.target_date && (
-                    <span className={`px-2.5 py-0.5 text-xs font-medium rounded-full border ${deadline ? TONE_CLASSES[deadline.tone] : TONE_CLASSES.ok}`}>
-                      📅 {formatDate(goal.target_date)}{deadline && ` · ${deadline.text}`}
+                    <span className={`chip ${deadline ? TONE_CLASSES[deadline.tone] : TONE_CLASSES.ok}`}>
+                      ⏳ {formatDate(goal.target_date)}{deadline && ` · ${deadline.text}`}
                     </span>
                   )}
                   {done && (
-                    <span className="px-2.5 py-0.5 text-xs font-medium rounded-full border bg-emerald-50 text-emerald-700 border-emerald-200">
+                    <span className="chip bg-emerald-50 text-emerald-700 border-emerald-200">
                       Conquistado em {formatDateTime(goal.completed_at!)}
                     </span>
                   )}
                 </div>
               </div>
-              <div className="flex gap-2">
-                <button onClick={() => setEditing(true)} className="px-3 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium">
-                  Editar
-                </button>
-                <button onClick={deleteGoal} className="px-3 py-2 text-sm bg-red-50 text-red-700 rounded-lg hover:bg-red-100 font-medium">
-                  Excluir
-                </button>
+              <div className="flex gap-2 self-end sm:self-auto">
+                <button onClick={() => setEditing(true)} className="btn btn-ghost btn-sm">Editar</button>
+                <button onClick={deleteGoal} className="btn btn-ghost btn-sm text-rose-600">Excluir</button>
               </div>
             </div>
 
             <ProgressBar progress={progress} size="lg" />
 
-            <div className="mt-6 flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl bg-amber-50 border border-amber-200">
-              <div className="text-sm text-amber-900">
-                <div>Cada meta: <strong>🪙 {goal.rewards.per_milestone.coins}</strong> · {goal.rewards.per_milestone.xp} XP</div>
-                <div>Bônus ao conquistar: <strong>🪙 {goal.rewards.on_complete.coins}</strong> · {goal.rewards.on_complete.xp} XP</div>
+            <div className="mt-6 flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-amber-50 border-2 border-amber-200">
+              <div className="space-y-1">
+                <div className="text-xs font-extrabold uppercase tracking-wider text-amber-700">Recompensas</div>
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-bold text-slate-600">
+                  Cada meta <CoinAmount value={goal.rewards.per_milestone.coins} className="text-amber-600 text-lg" />
+                  <XP value={goal.rewards.per_milestone.xp} className="text-sm" />
+                </div>
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-bold text-slate-600">
+                  Bônus final <CoinAmount value={goal.rewards.on_complete.coins} className="text-amber-600 text-lg" />
+                  <XP value={goal.rewards.on_complete.xp} className="text-sm" />
+                </div>
               </div>
               <button onClick={toggleGoal} disabled={busy === 'goal'}
-                className={`px-5 py-3 rounded-lg font-semibold shadow-md disabled:opacity-50 ${
-                  done ? 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-                    : 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white hover:from-emerald-600 hover:to-emerald-700'
-                }`}>
+                className={`btn btn-lg ${done ? 'btn-ghost' : 'btn-success'}`}>
                 {busy === 'goal' ? 'Salvando...' : done ? 'Reabrir objetivo' : '🏆 Concluir objetivo'}
               </button>
             </div>
             {!done && allMilestonesDone && (
-              <p className="mt-3 text-sm font-medium text-emerald-700">
-                Todas as metas foram concluídas! Concluam o objetivo para ganhar o bônus.
+              <p className="mt-3 font-extrabold text-emerald-600 animate-pulse">
+                Todas as metas concluídas! Concluam o objetivo para pegar o bônus.
               </p>
             )}
           </>
         )}
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">
-          Metas <span className="text-gray-400 font-normal">({goal.milestones_completed}/{goal.milestones_total})</span>
+      <div className="card p-6">
+        <h2 className="font-game text-2xl text-slate-900 mb-4">
+          Metas <span className="text-slate-400">{goal.milestones_completed}/{goal.milestones_total}</span>
         </h2>
 
         {milestones.length === 0 && (
-          <p className="text-gray-500 mb-4">Quebrem o objetivo em etapas menores. Ex.: &quot;Guardar os primeiros R$ 1.000&quot;.</p>
+          <p className="font-semibold text-slate-500 mb-4">Quebrem o objetivo em etapas menores. Ex.: &quot;Guardar os primeiros R$ 1.000&quot;.</p>
         )}
 
-        <ul className="divide-y divide-gray-100 mb-4">
+        <ul className="space-y-2 mb-5">
           {milestones.map((m) => {
             const late = !m.completed && m.due_date && m.due_date < todayISO();
             return (
-              <li key={m.id} className="py-3 flex items-center gap-3">
-                <button onClick={() => toggleMilestone(m)} disabled={busy === m.id}
-                  aria-label={m.completed ? 'Reabrir meta' : 'Concluir meta'}
-                  className={`w-7 h-7 shrink-0 rounded-full border-2 flex items-center justify-center font-bold disabled:opacity-50 ${
-                    m.completed ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-gray-300 hover:border-emerald-500 text-transparent hover:text-emerald-500'
-                  }`}>
-                  ✓
-                </button>
+              <li key={m.id} className={`flex items-center gap-3 p-3 rounded-2xl border-2 ${m.completed ? 'bg-emerald-50/60 border-emerald-200' : 'bg-white border-slate-200'}`}>
+                <CheckButton checked={m.completed} disabled={busy === m.id} onClick={() => toggleMilestone(m)} />
                 {editId === m.id ? (
                   <div className="flex flex-wrap gap-2 flex-1">
-                    <input className={`${input} flex-1 min-w-40`} value={editTitle} onChange={(e) => setEditTitle(e.target.value)} autoFocus />
-                    <input type="date" className={input} value={editDate} onChange={(e) => setEditDate(e.target.value)} />
-                    <button onClick={() => saveEdit(m)} disabled={!editTitle.trim()} className="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium disabled:opacity-50">Salvar</button>
-                    <button onClick={() => setEditId(null)} className="px-3 py-2 bg-gray-100 rounded-lg text-sm">Cancelar</button>
+                    <input className="input flex-1 min-w-40 py-2" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} autoFocus />
+                    <input type="date" className="input w-auto py-2" value={editDate} onChange={(e) => setEditDate(e.target.value)} />
+                    <button onClick={() => saveEdit(m)} disabled={!editTitle.trim()} className="btn btn-primary btn-sm">Salvar</button>
+                    <button onClick={() => setEditId(null)} className="btn btn-ghost btn-sm">Cancelar</button>
                   </div>
                 ) : (
                   <>
                     <div className="flex-1 min-w-0">
-                      <div className={`font-medium ${m.completed ? 'text-gray-400 line-through' : 'text-gray-900'}`}>{m.title}</div>
+                      <div className={`font-bold ${m.completed ? 'text-slate-400 line-through' : 'text-slate-800'}`}>{m.title}</div>
                       {m.due_date && (
-                        <div className={`text-xs ${late ? 'text-red-600' : 'text-gray-500'}`}>
-                          📅 {formatDate(m.due_date)}{late && ' · atrasada'}
+                        <div className={`text-xs font-bold ${late ? 'text-rose-600' : 'text-slate-400'}`}>
+                          ⏳ {formatDate(m.due_date)}{late && ' · atrasada'}
                         </div>
                       )}
                     </div>
-                    {!m.completed && <span className="text-sm text-amber-700 font-medium whitespace-nowrap">+🪙 {goal.rewards.per_milestone.coins}</span>}
+                    {!m.completed && <CoinAmount value={goal.rewards.per_milestone.coins} sign size={16} className="text-amber-600 whitespace-nowrap" />}
                     <button onClick={() => { setEditId(m.id); setEditTitle(m.title); setEditDate(m.due_date ?? ''); }}
-                      className="text-sm text-gray-500 hover:text-blue-600">Editar</button>
-                    <button onClick={() => deleteMilestone(m)} className="text-sm text-gray-500 hover:text-red-600">Excluir</button>
+                      className="text-xs font-extrabold uppercase text-slate-400 hover:text-violet-600" aria-label="Editar meta">✏️</button>
+                    <button onClick={() => deleteMilestone(m)} className="text-xs font-extrabold uppercase text-slate-400 hover:text-rose-600" aria-label="Excluir meta">🗑️</button>
                   </>
                 )}
               </li>
@@ -249,13 +236,10 @@ export default function GoalDetailPage() {
           })}
         </ul>
 
-        <form onSubmit={addMilestone} className="flex flex-wrap gap-2">
-          <input className={`${input} flex-1 min-w-48`} placeholder="Nova meta..." value={newTitle} onChange={(e) => setNewTitle(e.target.value)} />
-          <input type="date" className={input} value={newDate} min={todayISO()} onChange={(e) => setNewDate(e.target.value)} title="Prazo (opcional)" />
-          <button type="submit" disabled={!newTitle.trim() || busy === -1}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium disabled:opacity-50">
-            Adicionar
-          </button>
+        <form onSubmit={addMilestone} className="flex flex-wrap gap-2 p-3 rounded-2xl border-2 border-dashed border-slate-300">
+          <input className="input flex-1 min-w-48" placeholder="Nova meta..." value={newTitle} onChange={(e) => setNewTitle(e.target.value)} />
+          <input type="date" className="input w-auto" value={newDate} min={todayISO()} onChange={(e) => setNewDate(e.target.value)} title="Prazo (opcional)" />
+          <button type="submit" disabled={!newTitle.trim() || busy === -1} className="btn btn-primary">+ Adicionar</button>
         </form>
       </div>
     </div>

@@ -3,13 +3,14 @@
 import Link from 'next/link';
 import { Goal } from '@/types';
 import ProgressBar from './ProgressBar';
+import { CoinAmount, Stars } from './ui';
 import { DIFFICULTY, TONE_CLASSES, deadlineLabel, goalProgress } from '@/lib/utils';
 
 export function DifficultyBadge({ difficulty }: { difficulty: Goal['difficulty'] }) {
   const d = DIFFICULTY[difficulty];
   return (
-    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium rounded-full border ${d.className}`}>
-      {d.emoji} {d.label}
+    <span className={`chip ${d.className}`}>
+      <Stars difficulty={difficulty} /> {d.label}
     </span>
   );
 }
@@ -20,37 +21,28 @@ export default function GoalCard({ goal }: { goal: Goal }) {
   const deadline = goal.target_date && !done ? deadlineLabel(goal.target_date) : null;
 
   return (
-    <Link
-      href={`/objetivos/${goal.id}`}
-      className={`block bg-white rounded-xl shadow-sm border p-6 hover:shadow-md transition-all ${
-        done ? 'border-emerald-200 bg-emerald-50/40' : 'border-gray-100'
-      }`}
-    >
+    <Link href={`/objetivos/${goal.id}`}
+      className={`card card-hover block p-5 ${done ? 'border-emerald-300 bg-emerald-50/60' : ''}`}
+      style={done ? { boxShadow: '0 4px 0 #a7f3d0' } : undefined}>
       <div className="flex items-start justify-between gap-3 mb-3">
-        <h3 className="text-lg font-semibold text-gray-900 line-clamp-2">{goal.title}</h3>
-        {done && <span className="text-2xl" title="Concluído">🏆</span>}
+        <h3 className="font-game text-xl leading-snug text-slate-900 line-clamp-2">{goal.title}</h3>
+        {done && <span className="text-3xl animate-[pop_400ms_ease-out]" title="Conquistado">🏆</span>}
       </div>
-      <div className="flex items-center gap-2 flex-wrap mb-4">
-        {goal.category && (
-          <span className="px-2.5 py-0.5 bg-blue-50 text-blue-700 text-xs font-medium rounded-full border border-blue-200">
-            {goal.category.name}
-          </span>
-        )}
+      <div className="flex items-center gap-1.5 flex-wrap mb-4">
+        {goal.category && <span className="chip bg-sky-50 text-sky-700 border-sky-200">{goal.category.name}</span>}
         <DifficultyBadge difficulty={goal.difficulty} />
-        {deadline && (
-          <span className={`px-2.5 py-0.5 text-xs font-medium rounded-full border ${TONE_CLASSES[deadline.tone]}`}>
-            📅 {deadline.text}
-          </span>
-        )}
+        {deadline && <span className={`chip ${TONE_CLASSES[deadline.tone]}`}>⏳ {deadline.text}</span>}
       </div>
       <ProgressBar progress={progress} size="sm" />
-      <div className="mt-4 pt-4 border-t border-gray-100 flex justify-between text-sm">
-        <span className="text-gray-600">
+      <div className="mt-4 pt-3 border-t-2 border-dashed border-slate-200 flex justify-between items-center">
+        <span className="text-sm font-bold text-slate-500">
           {goal.milestones_completed}/{goal.milestones_total} metas
         </span>
-        <span className="font-semibold text-amber-700">
-          {done ? 'Conquistado!' : `Vale 🪙 ${goal.rewards.on_complete.coins}`}
-        </span>
+        {done ? (
+          <span className="font-game text-emerald-600">Conquistado!</span>
+        ) : (
+          <span className="text-amber-600 text-lg"><CoinAmount value={goal.rewards.on_complete.coins} /></span>
+        )}
       </div>
     </Link>
   );

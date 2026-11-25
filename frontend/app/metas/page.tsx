@@ -6,6 +6,7 @@ import { MilestoneWithGoal } from '@/types';
 import { errorMessage, milestonesAPI } from '@/lib/api';
 import { useGame } from '@/components/GameProvider';
 import Loading, { ErrorBox } from '@/components/Loading';
+import { CheckButton, CoinAmount, EmptyState, PageTitle } from '@/components/ui';
 import { formatDate, todayISO } from '@/lib/utils';
 
 export default function MilestonesPage() {
@@ -35,7 +36,7 @@ export default function MilestonesPage() {
     setBusy(m.id);
     try {
       const res = m.completed ? await milestonesAPI.reopen(m.id) : await milestonesAPI.complete(m.id);
-      applyProgress(res, m.completed ? 'Meta reaberta' : 'Meta concluída');
+      applyProgress(res, m.completed ? 'Meta reaberta' : 'Meta concluída!');
       await load();
     } catch (err) {
       notify('error', errorMessage(err));
@@ -50,52 +51,42 @@ export default function MilestonesPage() {
 
   return (
     <div className="max-w-4xl mx-auto">
-      <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Metas</h1>
-          <p className="text-gray-600">{pending.length} pendente{pending.length !== 1 ? 's' : ''}, ordenadas por prazo.</p>
-        </div>
-        <label className="flex items-center gap-2 text-sm text-gray-700">
-          <input type="checkbox" checked={showDone} onChange={(e) => setShowDone(e.target.checked)} />
-          Mostrar concluídas
-        </label>
-      </div>
+      <PageTitle title="Metas" subtitle={`${pending.length} pendente${pending.length !== 1 ? 's' : ''}, ordenadas por prazo`}
+        action={
+          <button onClick={() => setShowDone(!showDone)} aria-pressed={showDone} className={`btn btn-sm ${showDone ? 'btn-primary' : 'btn-ghost'}`}>
+            {showDone ? '✓ ' : ''}Mostrar concluídas
+          </button>
+        } />
 
       {loading ? <Loading /> : error ? <ErrorBox message={error} onRetry={load} /> : visible.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-100 p-12 text-center text-gray-600">
-          {items.length === 0 ? 'Nenhuma meta cadastrada ainda. Abra um objetivo para adicionar metas.' : 'Nenhuma meta pendente. 🎉'}
-        </div>
+        items.length === 0
+          ? <EmptyState icon="📋" title="Nenhuma meta ainda" text="Abram um objetivo e quebrem ele em metas menores." action={<Link href="/" className="btn btn-primary">Ver objetivos</Link>} />
+          : <EmptyState icon="🎉" title="Nada pendente!" text="Todas as metas foram concluídas. Hora de um novo desafio?" />
       ) : (
-        <ul className="bg-white rounded-xl shadow-sm border border-gray-100 divide-y divide-gray-100">
+        <ul className="space-y-2">
           {visible.map((m) => {
             const due = m.due_date ?? m.goal_target_date;
             const late = !m.completed && due && due < today;
             return (
-              <li key={m.id} className="p-4 flex items-center gap-4">
-                <button onClick={() => toggle(m)} disabled={busy === m.id}
-                  aria-label={m.completed ? 'Reabrir meta' : 'Concluir meta'}
-                  className={`w-7 h-7 shrink-0 rounded-full border-2 flex items-center justify-center font-bold disabled:opacity-50 ${
-                    m.completed ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-gray-300 hover:border-emerald-500 text-transparent hover:text-emerald-500'
-                  }`}>
-                  ✓
-                </button>
+              <li key={m.id} className={`card p-4 flex items-center gap-4 ${m.completed ? 'opacity-70' : ''}`}>
+                <CheckButton checked={m.completed} disabled={busy === m.id} onClick={() => toggle(m)} />
                 <div className="flex-1 min-w-0">
-                  <div className={`font-medium ${m.completed ? 'text-gray-400 line-through' : 'text-gray-900'}`}>{m.title}</div>
-                  <Link href={`/objetivos/${m.goal_id}`} className="text-sm text-blue-600 hover:underline">{m.goal_title}</Link>
+                  <div className={`font-bold ${m.completed ? 'text-slate-400 line-through' : 'text-slate-800'}`}>{m.title}</div>
+                  <Link href={`/objetivos/${m.goal_id}`} className="text-sm font-bold text-violet-600 hover:underline">🎯 {m.goal_title}</Link>
                 </div>
                 {due && (
-                  <span className={`text-sm whitespace-nowrap ${late ? 'text-red-600 font-medium' : 'text-gray-500'}`}>
-                    📅 {formatDate(due)}{!m.due_date && '*'}
+                  <span className={`chip whitespace-nowrap ${late ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-slate-50 text-slate-500 border-slate-200'}`}>
+                    ⏳ {formatDate(due)}{!m.due_date && '*'}
                   </span>
                 )}
-                {!m.completed && <span className="text-sm text-amber-700 font-medium whitespace-nowrap">+🪙 {m.reward.coins}</span>}
+                {!m.completed && <CoinAmount value={m.reward.coins} sign size={16} className="text-amber-600 whitespace-nowrap" />}
               </li>
             );
           })}
         </ul>
       )}
       {visible.some((m) => !m.due_date && m.goal_target_date) && (
-        <p className="text-xs text-gray-500 mt-3">* Meta sem prazo próprio: mostra o prazo do objetivo.</p>
+        <p className="text-xs font-semibold text-slate-400 mt-3">* Meta sem prazo próprio: mostra o prazo do objetivo.</p>
       )}
     </div>
   );

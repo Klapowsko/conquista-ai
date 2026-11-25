@@ -1,56 +1,102 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-  
-  /* Progress Colors */
-  --progress-complete: #10b981; /* green-500 */
-  --progress-in-progress: #f59e0b; /* amber-500 */
-  --progress-started: #3b82f6; /* blue-500 */
-  --progress-not-started: #e5e7eb; /* gray-200 */
-  
-  /* Status Colors */
-  --status-success: #10b981;
-  --status-warning: #f59e0b;
-  --status-info: #3b82f6;
-  --status-neutral: #6b7280;
-  
-  /* Gradients */
-  --gradient-progress: linear-gradient(90deg, #3b82f6 0%, #8b5cf6 100%);
-  --gradient-success: linear-gradient(90deg, #10b981 0%, #059669 100%);
-  --gradient-warning: linear-gradient(90deg, #f59e0b 0%, #d97706 100%);
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-nunito), ui-rounded, system-ui, sans-serif;
+  --font-game: var(--font-lilita), var(--font-nunito), system-ui, sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-    --progress-not-started: #374151;
-  }
+:root {
+  color-scheme: light;
+  --ink: #1e1b3a;
+  --page: #f5f3ff;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  background-color: var(--page);
+  background-image: radial-gradient(#ddd6fe 1px, transparent 1px);
+  background-size: 22px 22px;
+  color: var(--ink);
+  font-family: var(--font-sans);
 }
 
-/* Smooth transitions */
-* {
-  transition-property: color, background-color, border-color, opacity, transform;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 150ms;
+/* ---------- Componentes do "jogo" ---------- */
+@layer components {
+  .font-game {
+    font-family: var(--font-game);
+    letter-spacing: 0.01em;
+  }
+
+  /* Cartão com sombra sólida embaixo, estilo peça de jogo */
+  .card {
+    @apply bg-white rounded-2xl border-2 border-slate-200;
+    box-shadow: 0 4px 0 #e2e8f0;
+  }
+  .card-hover {
+    @apply transition-transform duration-150 hover:-translate-y-0.5;
+  }
+
+  /* Botões 3D que "afundam" ao clicar */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-extrabold uppercase tracking-wide text-sm
+      border-2 border-b-[5px] select-none transition-all duration-100
+      active:translate-y-[3px] active:border-b-2 disabled:opacity-50 disabled:pointer-events-none;
+  }
+  .btn-sm { @apply px-3 py-1.5 text-xs border-b-4 rounded-lg; }
+  .btn-lg { @apply px-7 py-3.5 text-base; }
+  .btn-primary { @apply bg-violet-600 border-violet-800 text-white hover:bg-violet-500; }
+  .btn-success { @apply bg-emerald-500 border-emerald-700 text-white hover:bg-emerald-400; }
+  .btn-gold { @apply bg-amber-400 border-amber-600 text-amber-950 hover:bg-amber-300; }
+  .btn-danger { @apply bg-rose-500 border-rose-700 text-white hover:bg-rose-400; }
+  .btn-ghost { @apply bg-white border-slate-200 text-slate-600 hover:bg-slate-50; }
+
+  .input {
+    @apply w-full px-4 py-2.5 rounded-xl border-2 border-slate-200 bg-slate-50 font-semibold text-slate-800
+      placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:border-violet-500 focus:bg-white transition-colors;
+  }
+  .label { @apply block text-xs font-extrabold uppercase tracking-wider text-slate-500 mb-2; }
+
+  .chip {
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold border-2;
+  }
+
+  /* Barra de progresso grossa com brilho */
+  .bar {
+    @apply relative h-4 rounded-full bg-slate-200 overflow-hidden;
+  }
+  .bar-fill {
+    @apply absolute inset-y-0 left-0 rounded-full transition-[width] duration-700 ease-out;
+  }
+  .bar-fill::after {
+    content: "";
+    position: absolute;
+    left: 6px;
+    right: 6px;
+    top: 3px;
+    height: 4px;
+    border-radius: 9999px;
+    background: rgb(255 255 255 / 0.35);
+  }
 }
 
 @keyframes toast-in {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(12px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes pop {
+  0% { transform: scale(0.3) rotate(-8deg); opacity: 0; }
+  60% { transform: scale(1.12) rotate(3deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0); }
+}
+@keyframes float-up {
+  0% { transform: translateY(0); opacity: 0; }
+  15% { opacity: 1; }
+  100% { transform: translateY(-120px); opacity: 0; }
+}
+@keyframes shine {
+  from { background-position: -200% 0; }
+  to { background-position: 200% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 1ms !important; transition-duration: 1ms !important; }
 }

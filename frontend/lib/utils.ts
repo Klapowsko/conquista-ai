@@ -41,9 +41,9 @@ export function deadlineLabel(value: string): { text: string; tone: 'late' | 'so
 }
 
 export const TONE_CLASSES = {
-  late: 'bg-red-50 text-red-700 border-red-200',
+  late: 'bg-rose-50 text-rose-700 border-rose-200',
   soon: 'bg-amber-50 text-amber-700 border-amber-200',
-  ok: 'bg-gray-50 text-gray-600 border-gray-200',
+  ok: 'bg-slate-50 text-slate-600 border-slate-200',
 };
 
 export function todayISO(): string {

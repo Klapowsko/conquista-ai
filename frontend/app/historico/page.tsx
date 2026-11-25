@@ -6,7 +6,8 @@ import { errorMessage, shopAPI } from '@/lib/api';
 import { useGame } from '@/components/GameProvider';
 import Loading, { ErrorBox } from '@/components/Loading';
 import StatCard from '@/components/StatCard';
-import { formatDateTime, formatNumber } from '@/lib/utils';
+import { CoinAmount, EmptyState, LevelBadge, PageTitle, XP } from '@/components/ui';
+import { formatDateTime } from '@/lib/utils';
 
 const ICON: Record<TransactionType, string> = {
   milestone_completed: '✅',
@@ -40,35 +41,31 @@ export default function HistoryPage() {
 
   return (
     <div className="max-w-4xl mx-auto">
-      <h1 className="text-3xl font-bold text-gray-900 mb-6">Histórico da carteira</h1>
+      <PageTitle title="Histórico" subtitle="Tudo que o casal ganhou e gastou." />
 
       {wallet && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <StatCard title="Saldo" value={`🪙 ${formatNumber(wallet.coins)}`} color="amber" />
-          <StatCard title="Total ganho" value={`🪙 ${formatNumber(wallet.total_earned)}`} color="green" />
-          <StatCard title="Gasto na loja" value={`🪙 ${formatNumber(wallet.total_spent)}`} color="blue" />
-          <StatCard title="Nível" value={`⭐ ${wallet.level}`} color="purple" />
+          <StatCard title="Saldo" value={<CoinAmount value={wallet.coins} size={26} />} color="amber" />
+          <StatCard title="Total ganho" value={<CoinAmount value={wallet.total_earned} size={26} />} color="emerald" />
+          <StatCard title="Gasto na loja" value={<CoinAmount value={wallet.total_spent} size={26} />} color="sky" />
+          <StatCard title="Nível" value={<span className="flex items-center gap-2"><LevelBadge level={wallet.level} size={30} /> <span className="text-xl text-slate-400">{wallet.total_xp} XP</span></span>} color="violet" />
         </div>
       )}
 
       {loading ? <Loading /> : error ? <ErrorBox message={error} onRetry={load} /> : items.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-100 p-12 text-center text-gray-500">
-          Nada por aqui ainda. Concluam a primeira meta para ganhar moedas!
-        </div>
+        <EmptyState icon="📜" title="Nada por aqui ainda" text="Concluam a primeira meta para ganhar as primeiras moedas!" />
       ) : (
-        <ul className="bg-white rounded-xl shadow-sm border border-gray-100 divide-y divide-gray-100">
+        <ul className="card divide-y-2 divide-slate-100 overflow-hidden">
           {items.map((t) => (
             <li key={t.id} className="p-4 flex items-center gap-4">
-              <span className="text-2xl">{ICON[t.type]}</span>
+              <span className="w-11 h-11 rounded-xl bg-slate-100 flex items-center justify-center text-2xl shrink-0">{ICON[t.type]}</span>
               <div className="flex-1 min-w-0">
-                <div className="font-medium text-gray-900">{t.description}</div>
-                <div className="text-xs text-gray-500">{formatDateTime(t.created_at)}</div>
+                <div className="font-bold text-slate-800">{t.description}</div>
+                <div className="text-xs font-semibold text-slate-400">{formatDateTime(t.created_at)}</div>
               </div>
               <div className="text-right whitespace-nowrap">
-                <div className={`font-semibold ${t.coins >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                  {t.coins >= 0 ? '+' : ''}{formatNumber(t.coins)} 🪙
-                </div>
-                {t.xp !== 0 && <div className="text-xs text-violet-600">{t.xp > 0 ? '+' : ''}{t.xp} XP</div>}
+                <CoinAmount value={t.coins} sign className={`text-lg ${t.coins >= 0 ? 'text-emerald-600' : 'text-rose-500'}`} />
+                {t.xp !== 0 && <div><XP value={t.xp} className="text-xs" /></div>}
               </div>
             </li>
           ))}
