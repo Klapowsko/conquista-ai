@@ -84,7 +84,7 @@ export default function GameProvider({ children }: { children: React.ReactNode }
     <GameContext.Provider value={{ wallet, refreshWallet, applyProgress, setWallet, notify }}>
       {children}
 
-      <div className="fixed bottom-4 right-4 left-4 sm:left-auto z-[60] flex flex-col gap-2 items-end pointer-events-none">
+      <div className="fixed bottom-24 sm:bottom-4 right-4 left-4 sm:left-auto z-[60] flex flex-col gap-2 items-end pointer-events-none">
         {toasts.map((t) => (
           <div key={t.id} role="status"
             className={`pointer-events-auto rounded-2xl border-2 border-b-4 px-5 py-3 w-full sm:w-80 shadow-lg animate-[toast-in_220ms_ease-out] ${toneClass[t.tone]}`}>

@@ -5,17 +5,26 @@ import { TransactionType, WalletTransaction } from '@/types';
 import { errorMessage, shopAPI } from '@/lib/api';
 import { useGame } from '@/components/GameProvider';
 import Loading, { ErrorBox } from '@/components/Loading';
-import StatCard from '@/components/StatCard';
-import { CoinAmount, EmptyState, LevelBadge, PageTitle, XP } from '@/components/ui';
-import { formatDateTime } from '@/lib/utils';
+import { CoinAmount, EmptyState, LevelBadge, XP } from '@/components/ui';
+import { formatNumber } from '@/lib/utils';
 
-const ICON: Record<TransactionType, string> = {
-  milestone_completed: '✅',
-  milestone_reopened: '↩️',
-  goal_completed: '🏆',
-  goal_reopened: '↩️',
-  reward_purchased: '🛍️',
+const ICON: Record<TransactionType, { icon: string; bg: string }> = {
+  milestone_completed: { icon: '✅', bg: 'bg-emerald-100 border-emerald-300' },
+  milestone_reopened: { icon: '↩️', bg: 'bg-slate-100 border-slate-300' },
+  goal_completed: { icon: '🏆', bg: 'bg-amber-100 border-amber-300' },
+  goal_reopened: { icon: '↩️', bg: 'bg-slate-100 border-slate-300' },
+  reward_purchased: { icon: '🛍️', bg: 'bg-violet-100 border-violet-300' },
 };
+
+function dayLabel(iso: string): string {
+  const d = new Date(iso);
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(today.getDate() - 1);
+  if (d.toDateString() === today.toDateString()) return 'Hoje';
+  if (d.toDateString() === yesterday.toDateString()) return 'Ontem';
+  return d.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });
+}
 
 export default function HistoryPage() {
   const { wallet, refreshWallet } = useGame();
@@ -39,37 +48,55 @@ export default function HistoryPage() {
     load();
   }, [load]);
 
+  const days: { label: string; items: WalletTransaction[] }[] = [];
+  for (const t of items) {
+    const label = dayLabel(t.created_at);
+    if (days[days.length - 1]?.label === label) days[days.length - 1].items.push(t);
+    else days.push({ label, items: [t] });
+  }
+
   return (
-    <div className="max-w-4xl mx-auto">
-      <PageTitle title="Histórico" subtitle="Tudo que o casal ganhou e gastou." />
+    <div className="max-w-3xl mx-auto">
+      <h1 className="font-game text-4xl text-slate-900 mb-4">Histórico</h1>
 
       {wallet && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <StatCard title="Saldo" value={<CoinAmount value={wallet.coins} size={26} />} color="amber" />
-          <StatCard title="Total ganho" value={<CoinAmount value={wallet.total_earned} size={26} />} color="emerald" />
-          <StatCard title="Gasto na loja" value={<CoinAmount value={wallet.total_spent} size={26} />} color="sky" />
-          <StatCard title="Nível" value={<span className="flex items-center gap-2"><LevelBadge level={wallet.level} size={30} /> <span className="text-xl text-slate-400">{wallet.total_xp} XP</span></span>} color="violet" />
+        <div className="flex flex-wrap gap-2 mb-8">
+          <span className="chip bg-white border-slate-200 text-slate-600 text-sm py-1.5 px-3"><LevelBadge level={wallet.level} size={20} /> Nível {wallet.level} · {formatNumber(wallet.total_xp)} XP</span>
+          <span className="chip bg-amber-50 border-amber-300 text-amber-700 text-sm py-1.5 px-3">Saldo <CoinAmount value={wallet.coins} size={15} /></span>
+          <span className="chip bg-emerald-50 border-emerald-300 text-emerald-700 text-sm py-1.5 px-3">Ganho <CoinAmount value={wallet.total_earned} size={15} /></span>
+          <span className="chip bg-violet-50 border-violet-300 text-violet-700 text-sm py-1.5 px-3">Gasto <CoinAmount value={wallet.total_spent} size={15} /></span>
         </div>
       )}
 
       {loading ? <Loading /> : error ? <ErrorBox message={error} onRetry={load} /> : items.length === 0 ? (
         <EmptyState icon="📜" title="Nada por aqui ainda" text="Concluam a primeira meta para ganhar as primeiras moedas!" />
       ) : (
-        <ul className="card divide-y-2 divide-slate-100 overflow-hidden">
-          {items.map((t) => (
-            <li key={t.id} className="p-4 flex items-center gap-4">
-              <span className="w-11 h-11 rounded-xl bg-slate-100 flex items-center justify-center text-2xl shrink-0">{ICON[t.type]}</span>
-              <div className="flex-1 min-w-0">
-                <div className="font-bold text-slate-800">{t.description}</div>
-                <div className="text-xs font-semibold text-slate-400">{formatDateTime(t.created_at)}</div>
-              </div>
-              <div className="text-right whitespace-nowrap">
-                <CoinAmount value={t.coins} sign className={`text-lg ${t.coins >= 0 ? 'text-emerald-600' : 'text-rose-500'}`} />
-                {t.xp !== 0 && <div><XP value={t.xp} className="text-xs" /></div>}
-              </div>
-            </li>
+        <div className="space-y-8">
+          {days.map((day) => (
+            <section key={day.label}>
+              <h2 className="font-game text-lg text-slate-500 capitalize mb-3">{day.label}</h2>
+              <ol className="relative ml-5 border-l-4 border-slate-200 space-y-3">
+                {day.items.map((t) => (
+                  <li key={t.id} className="relative pl-8">
+                    <span className={`absolute -left-[1.4rem] top-1 w-10 h-10 rounded-full border-2 flex items-center justify-center text-lg ${ICON[t.type].bg}`}>{ICON[t.type].icon}</span>
+                    <div className="card px-4 py-3 flex items-center gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="font-bold text-slate-800">{t.description}</div>
+                        <div className="text-xs font-semibold text-slate-400">
+                          {new Date(t.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                        </div>
+                      </div>
+                      <div className="text-right whitespace-nowrap">
+                        <CoinAmount value={t.coins} sign className={`text-lg ${t.coins >= 0 ? 'text-emerald-600' : 'text-rose-500'}`} />
+                        {t.xp !== 0 && <div><XP value={t.xp} className="text-xs" /></div>}
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </section>
           ))}
-        </ul>
+        </div>
       )}
     </div>
   );

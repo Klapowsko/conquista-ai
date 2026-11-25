@@ -18,7 +18,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body className={`${nunito.variable} ${lilita.variable} antialiased min-h-screen`}>
         <GameProvider>
           <Navbar />
-          <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8">{children}</main>
+          <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-6 sm:pt-8 pb-28 sm:pb-12">{children}</main>
         </GameProvider>
       </body>
     </html>

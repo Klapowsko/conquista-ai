@@ -114,3 +114,62 @@ export function CheckButton({ checked, onClick, disabled }: { checked: boolean; 
     </button>
   );
 }
+
+/** Anel de progresso circular (SVG). */
+export function ProgressRing({
+  value,
+  size = 64,
+  stroke = 8,
+  color = '#8b5cf6',
+  children,
+}: {
+  value: number;
+  size?: number;
+  stroke?: number;
+  color?: string;
+  children?: React.ReactNode;
+}) {
+  const v = Math.min(100, Math.max(0, value));
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  return (
+    <span className="relative inline-flex items-center justify-center shrink-0" style={{ width: size, height: size }}>
+      <svg width={size} height={size} className="-rotate-90" aria-hidden>
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#e2e8f0" strokeWidth={stroke} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={v === 100 ? '#10b981' : color} strokeWidth={stroke}
+          strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - v / 100)}
+          style={{ transition: 'stroke-dashoffset 700ms ease-out' }} />
+      </svg>
+      <span className="absolute inset-0 flex items-center justify-center">{children ?? <span className="font-game text-slate-700" style={{ fontSize: size * 0.24 }}>{Math.round(v)}%</span>}</span>
+    </span>
+  );
+}
+
+/** Controle segmentado em pílula (filtros). */
+export function Segmented<T extends string | number | null>({
+  options,
+  value,
+  onChange,
+}: {
+  options: { value: T; label: string }[];
+  value: T;
+  onChange: (v: T) => void;
+}) {
+  return (
+    <div className="inline-flex p-1 rounded-2xl bg-white border-2 border-slate-200 overflow-x-auto max-w-full">
+      {options.map((o) => (
+        <button key={String(o.value)} onClick={() => onChange(o.value)} aria-pressed={value === o.value}
+          className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold uppercase tracking-wide whitespace-nowrap transition-colors ${
+            value === o.value ? 'bg-violet-600 text-white shadow-[0_3px_0_#5b21b6]' : 'text-slate-500 hover:text-slate-800'
+          }`}>
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** Rótulo pequeno de seção. */
+export function Eyebrow({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+  return <div className={`text-[11px] font-extrabold uppercase tracking-[0.18em] text-slate-400 ${className}`}>{children}</div>;
+}
